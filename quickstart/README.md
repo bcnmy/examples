@@ -14,7 +14,7 @@ This quickstart guide demonstrates how to use the Biconomy SDK to create an acco
 2. Install the required dependencies:
 
    ```
-   npm install @biconomy/sdk-canary viem
+   npm install 
    ```
 
 3. Open `index.ts` and replace the empty `privateKey` string with your actual private key:
