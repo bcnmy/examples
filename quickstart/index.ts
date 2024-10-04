@@ -1,4 +1,4 @@
-import { createNexusClient } from "@biconomy/sdk-canary";
+import { createNexusClient } from "@biconomy/sdk";
 import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
 import { http, parseEther } from "viem";
@@ -11,7 +11,7 @@ const factoryAddress = "0x887Ca6FaFD62737D0E79A2b8Da41f0B15A864778"
 export const createAccountAndSendTransaction = async () => {
     const account = privateKeyToAccount(`0x${privateKey}`)
     const nexusClient = await createNexusClient({
-        holder: account,
+        signer: account,
         chain: baseSepolia,
         transport: http(),
         bundlerTransport: http(bundlerUrl),
