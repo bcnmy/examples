@@ -2,7 +2,8 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 ## Getting Started
 
-First, run the development server:
+1. Enter the private key to the index.ts file.
+2. Transfer some eth to the smart account address on base sepolia and save.
 
 ```bash
 npm run dev
