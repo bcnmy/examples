@@ -16,6 +16,7 @@ const Home: React.FC = () => {
             <h1>Welcome to Nexus Quickstart!</h1>
             <p>This is a simple example sending transaction using Nexus Smart Account.</p>
             {address && <p>Smart Account Address: {address}</p>}
+            <p>Next we will do a transaction using smart account, Transfer some eth to the above smart account to execute a transfer transaction. The funds will also cover gas fees for the transaction.</p>
             {hash && <p>Transaction Hash: {hash}</p>}
         </div>
     );
