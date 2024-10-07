@@ -13,10 +13,10 @@ const Home: React.FC = () => {
 
     return (
         <div>
-            <h1>Welcome to Nexus Quickstart!</h1>
+            <h1>Sending gasless transactions!</h1>
             <p>This is an example transaction, transferring 0.001 ETH from the smart account to a random address. </p>
             {address && <p>Smart Account Address: {address}</p>}
-            {address && <p> If the smart account doesn't have sufficient funds, transfer to the smart account first. The funds will also cover gas fees for the transaction.</p>}
+            {address && <p>Enter the paymasterUrl in the `index.ts` file. If the smart account doesn't have sufficient funds, transfer to the smart account first. </p>}
             {hash && <p>Transaction Hash: {hash}</p>}
         </div>
     );
