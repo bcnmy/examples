@@ -1,0 +1,38 @@
+{
+  "name": "nexus-smart-sessions-demo",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@biconomy/sdk-canary": "^0.0.7",
+    "@rhinestone/module-sdk": "^0.1.17",
+    "@tanstack/react-query": "5.45.1",
+    "autoprefixer": "latest",
+    "next": "^14.2.15",
+    "postcss": "latest",
+    "react": "^18.3.1",
+    "react-datepicker": "^7.4.0",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "latest",
+    "viem": "latest",
+    "wagmi": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.10",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "@wagmi/cli": "latest",
+    "bufferutil": "^4.0.8",
+    "encoding": "^0.1.13",
+    "lokijs": "^1.5.12",
+    "pino-pretty": "^10.3.1",
+    "supports-color": "^9.4.0",
+    "typescript": "^5.6.2",
+    "utf-8-validate": "^5.0.2"
+  }
+}
