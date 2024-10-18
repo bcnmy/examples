@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NexusClient } from "@biconomy/sdk-canary"
+import { NexusClient } from "@biconomy/sdk"
 import { Module } from '@/app/types/module'
 
 const SmartAccountActions = ({ nexusClient, setShowUserOpPopup }: { nexusClient: NexusClient, setShowUserOpPopup: (show: boolean) => void }) => {

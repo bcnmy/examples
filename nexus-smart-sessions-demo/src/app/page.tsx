@@ -10,7 +10,7 @@ import Header from '@/components/Header';
 import AccountInfo from '@/components/AccountInfo';
 import { K1_VALIDATOR, SMART_SESSION_VALIDATOR, validationModules, K1_VALIDATOR_FACTORY } from '@/utils/constants/modules';
 import { Module } from './types/module';
-import { createNexusClient, NexusClient, createSessions, useSession, createNexusSessionClient } from '@biconomy/sdk-canary';
+import { createNexusClient, NexusClient } from '@biconomy/sdk';
 import { privateKeyToAccount } from 'viem/accounts';
 import PolicyBuilder from '@/components/PolicyBuilder';
 
@@ -50,12 +50,13 @@ function App() {
   useEffect(() => {
     let nexusClient;
     const initNexusClient = async () => {
+      if (!walletClient) return;
       try {
         nexusClient = await createNexusClient({
           signer: walletClient,
-          chain: baseSepolia as Chain,
-          transport: http() as Transport,
-          bundlerTransport: http(bundlerUrl) as Transport,
+          chain: baseSepolia,
+          transport: http(),
+          bundlerTransport: http(bundlerUrl),
           index: BigInt(1),
           k1ValidatorAddress: K1_VALIDATOR,
           factoryAddress: K1_VALIDATOR_FACTORY

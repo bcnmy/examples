@@ -3,7 +3,7 @@
 // import { useAccount, usePublicClient } from 'wagmi'
 // import { useEffect } from 'react'
 
-// import { toWebAuthnKey, toPasskeyValidator, WebAuthnMode } from '@biconomy/sdk-canary'
+// import { toWebAuthnKey, toPasskeyValidator, WebAuthnMode } from '@biconomy/sdk'
 
 // export default function Passkey() {
 //     const account = useAccount()

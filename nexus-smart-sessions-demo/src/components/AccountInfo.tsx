@@ -1,5 +1,5 @@
 import { useAccount, useBalance, type UseBalanceReturnType } from 'wagmi'
-import { NexusClient } from "@biconomy/sdk-canary"
+import { NexusClient } from "@biconomy/sdk"
 import { useEffect, useState } from 'react'
 import { getInstalledValidators } from '@/utils/actions/getInstalledValidators'
 import { Module } from '@/app/types/module'

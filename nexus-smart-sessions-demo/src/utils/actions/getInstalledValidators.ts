@@ -1,4 +1,4 @@
-import { NexusClient } from "@biconomy/sdk-canary";
+import { NexusClient } from "@biconomy/sdk";
 import { validationModules } from "../constants/modules";
 
 export const getInstalledValidators = async (nexusClient: NexusClient) => {
