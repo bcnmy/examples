@@ -3,9 +3,10 @@ import { NexusClient } from "@biconomy/sdk"
 import { useEffect, useState } from 'react'
 import { getInstalledValidators } from '@/utils/actions/getInstalledValidators'
 import { Module } from '@/app/types/module'
-import { validationModules } from '@/utils/constants/modules'
 import { parseEther, WalletClient } from 'viem'
 import { waitForTransactionReceipt } from 'viem/actions'
+import { baseSepolia } from 'viem/chains'
+import { validationModules } from '@/utils/constants/addresses'
 
 const AccountInfo = ({ nexusClient, setActiveValidationModule, activeValidationModule, walletClient }: { nexusClient: NexusClient, setActiveValidationModule: (module: Module) => void, activeValidationModule: Module | null, walletClient: WalletClient }) => {
     const account = useAccount()
@@ -13,7 +14,7 @@ const AccountInfo = ({ nexusClient, setActiveValidationModule, activeValidationM
     const [topUpAmount, setTopUpAmount] = useState<string | null>(null);
     const [isDeployed, setIsDeployed] = useState(false);
     const [isLoadingTopUp, setIsLoadingTopUp] = useState(false);
-
+    const [isUsingPaymaster, setIsUsingPaymaster] = useState(false);
     const { data: balance }: UseBalanceReturnType = useBalance({
         address: nexusClient?.account.address,
     })
@@ -41,13 +42,19 @@ const AccountInfo = ({ nexusClient, setActiveValidationModule, activeValidationM
     useEffect(() => {
         async function fetchData() {
             if (isDeployed) {
-                const activeModule = nexusClient.account.getActiveModule();
+                const activeModule = nexusClient.account.getModule();
                 const foundModule = validationModules.find(module => module.address === activeModule.address);
                 setActiveValidationModule(foundModule as Module);
             }
         }
         fetchData();
     }, [nexusClient, isDeployed])
+
+    useEffect(() => {
+        if (nexusClient.paymaster) {
+            setIsUsingPaymaster(true)
+        }
+    }, [nexusClient])
 
     const topUpSmartAccount = async () => {
         if (!nexusClient || !account.address) return;
@@ -57,6 +64,7 @@ const AccountInfo = ({ nexusClient, setActiveValidationModule, activeValidationM
                 account: account.address,
                 to: nexusClient.account.address,
                 value: parseEther(topUpAmount ?? "0"),
+                chain: baseSepolia,
                 from: account.address,
             });
             const receipt = await waitForTransactionReceipt(walletClient, { hash: tx });
@@ -85,9 +93,9 @@ const AccountInfo = ({ nexusClient, setActiveValidationModule, activeValidationM
                     <div className="flex items-center space-x-2">
                         <input
                             type="text"
-                            placeholder="Amount in ETH"
+                            placeholder={isUsingPaymaster ? "Your account doesn't need funding" : "Amount in Wei"}
                             className="flex-grow p-2 bg-gray-600 rounded"
-                            value={topUpAmount ?? "0"}
+                            value={topUpAmount ?? undefined}
                             onChange={(e) => setTopUpAmount(e.target.value)}
                         />
                         <button
@@ -108,6 +116,12 @@ const AccountInfo = ({ nexusClient, setActiveValidationModule, activeValidationM
                                     <strong className="text-orange-300">Active Validation Module:</strong> <span className="text-white">{activeValidationModule?.name}</span>
                                 </div>
                             </div>
+                            {isUsingPaymaster && (
+                                <div className="col-span-2">
+                                    <strong className="text-orange-300">SPONSORED ACCOUNT:</strong>
+                                    <span className="text-white">Yes</span>
+                                </div>
+                            )}
                             <div className="col-span-2">
                                 <strong className="text-orange-300">Installed Validators:</strong>
                                 <ul className="list-disc list-inside text-white">

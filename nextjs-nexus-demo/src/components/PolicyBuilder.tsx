@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Hex, toFunctionSelector, toHex } from 'viem';
+import { Hex, parseEther, toFunctionSelector, toHex } from 'viem';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import SessionConfirm from './SessionConfirm';
-import { COUNTER_ADDRESS } from '../utils/constants/contracts';
 import { counterABI } from '../utils/constants/abis/counter';
+import { AGENT, COUNTER_ADDRESS, SESSION_VALIDATOR } from '@/utils/constants/addresses';
+import { SessionInfo } from '@/app/types/smartSessions';
 
 interface SessionCreationFormProps {
     onSubmit: (sessionInfo: any) => void;
@@ -40,7 +41,7 @@ const PolicyBuilder: React.FC<SessionCreationFormProps> = ({ onSubmit }) => {
                 const parsedABI = JSON.parse(contractABI);
                 const methods = parsedABI
                     .filter((item: any) => item.type === 'function')
-                    .map((item: any) => item.name);
+                    .map((item: any) => `${item.name}(${item.inputs.map((input: any) => `${input.type} ${input.name}`)})`);
                 setAvailableMethods(methods);
                 if (methods.length > 0) {
                     setFunctionSelector(methods[0]);
@@ -52,25 +53,23 @@ const PolicyBuilder: React.FC<SessionCreationFormProps> = ({ onSubmit }) => {
         }
     }, [contractABI]);
 
-
-    console.log(toHex("incrementNumber"), "toHex");
-
     const handleSubmit = (e: React.FormEvent) => {
+        console.log(functionSelector, "functionSelector");
         e.preventDefault();
-        const sessionInfo = {
-            sessionPublicKey: "0x4B8306128AEd3D49A9D17B99BF8082d4E406fa1F",
-            sessionValidatorAddress: "0xAAAdFd794A1781e4Fd3eA64985F107a7Ac2b3872",
-            sessionKeyData: "0x4B8306128AEd3D49A9D17B99BF8082d4E406fa1F",
-            sessionValidAfter: sessionValidAfter ? Math.floor(sessionValidAfter.getTime() / 1000) : 0,
-            sessionValidUntil: sessionValidUntil ? Math.floor(sessionValidUntil.getTime() / 1000) : 0,
+        const sessionInfo: SessionInfo = {
+            sessionPublicKey: AGENT,
+            // sessionValidatorAddress: SESSION_VALIDATOR,
+            // sessionKeyData: AGENT,
+            // sessionValidAfter: sessionValidAfter ? Math.floor(sessionValidAfter.getTime() / 1000) : 0,
+            // sessionValidUntil: sessionValidUntil ? Math.floor(sessionValidUntil.getTime() / 1000) : 0,
             actionPoliciesInfo: [
                 {
                     contractAddress: contractAddress,
-                    functionSelector: toFunctionSelector("incrementNumber()"),
-                    validUntil: validUntil ? Math.floor(validUntil.getTime() / 1000) : 0,
-                    validAfter: validAfter ? Math.floor(validAfter.getTime() / 1000) : 0,
-                    rules: [],
-                    valueLimit: BigInt(valueLimit)
+                    functionSelector: toFunctionSelector(`function test() returns(uint256)`),
+                    // validUntil: validUntil ? Math.floor(validUntil.getTime() / 1000) : 0,
+                    // validAfter: validAfter ? Math.floor(validAfter.getTime() / 1000) : 0,
+                    // rules: [],
+                    // valueLimit: parseEther("1")
                 }
             ]
         };
@@ -93,15 +92,16 @@ const PolicyBuilder: React.FC<SessionCreationFormProps> = ({ onSubmit }) => {
                 showModal={showConfirmation}
                 onConfirm={handleConfirm}
                 onCancel={handleCancel}
+                sessionInfo={sessionRequestedInfo}
             />
         );
     }
 
     return (
         <form onSubmit={handleSubmit} className="bg-gray-700 p-4 rounded-lg space-y-4">
-            <h2 className="text-2xl mb-4 text-orange-400 font-semibold">Create Custom Session</h2>
+            <h2 className="text-2xl mb-4 text-orange-400 font-semibold">Grant permissions to the AGENT</h2>
 
-            <div className="flex items-center mb-4">
+            {/* <div className="flex items-center mb-4">
                 <input
                     type="checkbox"
                     id="useBuiltInContract"
@@ -112,12 +112,12 @@ const PolicyBuilder: React.FC<SessionCreationFormProps> = ({ onSubmit }) => {
                 <label htmlFor="useBuiltInContract" className="text-white">
                     Use built-in Counter contract
                 </label>
-            </div>
+            </div> */}
 
             {!useBuiltInContract && (
                 <>
                     <div className="flex flex-col">
-                        <label className="text-white mb-1">Contract Address:</label>
+                        <label className="text-white mb-1">Allow it to interact with:</label>
                         <input
                             type="text"
                             value={contractAddress}
@@ -140,20 +140,24 @@ const PolicyBuilder: React.FC<SessionCreationFormProps> = ({ onSubmit }) => {
             )}
 
             <div className="flex flex-col">
-                <label className="text-white mb-1">Function:</label>
+                <label className="text-white mb-1">Allow it to call:</label>
                 <select
                     value={functionSelector}
-                    onChange={(e) => setFunctionSelector(e.target.value)}
+                    onChange={(e) => {
+                        setFunctionSelector(
+                            e.target.value
+                        )
+                    }}
                     className="bg-gray-600 text-white p-2 rounded"
                 >
                     {availableMethods.map((method) => (
-                        <option key={method} value={method}>{method}()</option>
+                        <option key={method} value={method}>{method}</option>
                     ))}
                 </select>
             </div>
 
             <div className="flex flex-col">
-                <label className="text-white mb-1">Session Valid After:</label>
+                <label className="text-white mb-1">Permission Valid After:</label>
                 <DatePicker
                     selected={sessionValidAfter}
                     onChange={(date: Date) => setSessionValidAfter(date)}
@@ -168,7 +172,7 @@ const PolicyBuilder: React.FC<SessionCreationFormProps> = ({ onSubmit }) => {
             </div>
 
             <div className="flex flex-col">
-                <label className="text-white mb-1">Session Valid Until:</label>
+                <label className="text-white mb-1">Permission Valid Until:</label>
                 <DatePicker
                     selected={sessionValidUntil}
                     onChange={(date: Date) => setSessionValidUntil(date)}
@@ -182,7 +186,7 @@ const PolicyBuilder: React.FC<SessionCreationFormProps> = ({ onSubmit }) => {
                 />
             </div>
 
-            <div className="flex flex-col">
+            {/* <div className="flex flex-col">
                 <label className="text-white mb-1">Valid After:</label>
                 <DatePicker
                     selected={validAfter}
@@ -210,10 +214,10 @@ const PolicyBuilder: React.FC<SessionCreationFormProps> = ({ onSubmit }) => {
                     isClearable
                     placeholderText="Select date and time or leave empty for no limit"
                 />
-            </div>
+            </div> */}
 
             <div className="flex flex-col">
-                <label className="text-white mb-1">Value Limit:</label>
+                <label className="text-white mb-1">Can send value up to:</label>
                 <input
                     type="text"
                     value={valueLimit}
@@ -224,9 +228,13 @@ const PolicyBuilder: React.FC<SessionCreationFormProps> = ({ onSubmit }) => {
 
             <button
                 type="submit"
-                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded transition duration-300 ease-in-out transform hover:scale-105"
+                disabled={!contractAddress || !contractABI}
+                className={`text-white px-4 py-2 rounded transition duration-300 ease-in-out transform ${contractAddress && contractABI
+                    ? 'bg-orange-500 hover:bg-orange-600 hover:scale-105'
+                    : 'bg-gray-500 cursor-not-allowed'
+                    }`}
             >
-                Create Session
+                Grant permissions to AI Agent
             </button>
         </form>
     );

@@ -1,5 +1,5 @@
 import { NexusClient } from "@biconomy/sdk";
-import { validationModules } from "../constants/modules";
+import { validationModules } from "../constants/addresses";
 
 export const getInstalledValidators = async (nexusClient: NexusClient) => {
     try {

@@ -1,12 +1,16 @@
+import { SessionInfo } from '@/app/types/smartSessions';
+import { MOCK_EXCHANGE_ABI } from '@/utils/constants/abis/mockExchange';
 import React from 'react';
+import { decodeFunctionData, toFunctionSelector } from 'viem';
 
 interface SessionConfirmProps {
     showModal: boolean;
     onConfirm: () => void;
     onCancel: () => void;
+    sessionInfo: SessionInfo;
 }
 
-const SessionConfirm: React.FC<SessionConfirmProps> = ({ showModal, onConfirm, onCancel }) => {
+const SessionConfirm: React.FC<SessionConfirmProps> = ({ showModal, onConfirm, onCancel, sessionInfo }) => {
     if (!showModal) return null;
 
     return (
@@ -14,14 +18,13 @@ const SessionConfirm: React.FC<SessionConfirmProps> = ({ showModal, onConfirm, o
             <div className="bg-gray-800 p-6 rounded-lg w-auto max-w-lg">
                 <h3 className="text-2xl mb-4 text-orange-400 font-semibold">Confirm Session Creation</h3>
                 <p className="text-white mb-4">
-                    This session will allow the following actions:
+                    You are granting the following permissions to the AI Agent:
                 </p>
                 <ul className="list-disc list-inside text-white mb-4">
-                    <li className="break-all">Increment counter at address 0x14e4829E655F0b3a1793838dDd47273D5341d416</li>
-                    <li>No value limit</li>
-                    <li>No time restrictions</li>
-                    <li>No expiration date</li>
-                    <li>Session id will be stored in local storage</li>
+                    <li className="break-all">Call buyApple on {`${sessionInfo?.actionPoliciesInfo[0].contractAddress}`}</li>
+                    <li>Value limit: {`${sessionInfo?.actionPoliciesInfo[0].valueLimit}`}</li>
+                    <li>Valid until: {`${sessionInfo?.actionPoliciesInfo[0].validUntil}`}</li>
+                    <li>{sessionInfo?.actionPoliciesInfo[0].rules?.length == 0 ?? "No rules"}</li>
                 </ul>
                 <div className="flex justify-between">
                     <button
