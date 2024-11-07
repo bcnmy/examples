@@ -4,14 +4,14 @@ import { useAccount, useBalance, UseBalanceReturnType, useConnect, useGasPrice, 
 import { baseSepolia } from 'viem/chains';
 import { useEffect, useState } from 'react';
 import { UserOperationReceipt, WaitForUserOperationReceiptReturnType } from 'viem/account-abstraction';
-import { Hex, encodeFunctionData, TransactionReceipt, http } from 'viem';
+import { Hex, encodeFunctionData, TransactionReceipt, http, toFunctionSelector } from 'viem';
 import Header from '@/components/Header';
 import AccountInfo from '@/components/AccountInfo';
 import { Module } from './types/module';
-import { createBicoPaymasterClient, createNexusClient, createNexusSessionClient, grantPermission, NexusClient, smartSessionUseActions, toSmartSessionsValidator, usePermission } from '@biconomy/sdk';
+import { createBicoPaymasterClient, createNexusClient, createNexusSessionClient, CreateSessionDataParams, grantPermission, NexusClient, smartSessionCreateActions, smartSessionUseActions, toSmartSessionsValidator, usePermission } from '@biconomy/sdk';
 import { privateKeyToAccount } from 'viem/accounts';
 import PolicyBuilder from '@/components/PolicyBuilder';
-import { SMART_SESSION_VALIDATOR, validationModules, MOCK_EXCHANGE } from '@/utils/constants/addresses';
+import { SMART_SESSION_VALIDATOR, validationModules, MOCK_EXCHANGE, COUNTER_ADDRESS } from '@/utils/constants/addresses';
 import { SessionInfo } from './types/smartSessions';
 import { MOCK_EXCHANGE_ABI } from '@/utils/constants/abis/mockExchange';
 
@@ -26,6 +26,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingTopUp, setIsLoadingTopUp] = useState(false);
   const [isLoadingCreateSession, setIsLoadingCreateSession] = useState(false);
+  const [hasPaymaster, setHasPaymaster] = useState(false);
 
   const { data: smartAccountBalance }: UseBalanceReturnType = useBalance({
     address: nexusClient?.account.address,
@@ -54,11 +55,14 @@ function App() {
     const initNexusClient = async () => {
       if (!walletClient) return;
       try {
+        const hasPaymaster = !!process.env.NEXT_PUBLIC_BICO_PAYMASTER_URL;
+        setHasPaymaster(hasPaymaster);
+
         nexusClient = await createNexusClient({
           signer: walletClient,
           chain: baseSepolia,
-          index: BigInt(1),
-          transport: http(),
+          index: BigInt(8),
+          transport: http("https://base-sepolia-rpc.publicnode.com	"),
           bundlerTransport: http(bundlerUrl),
           paymaster: process.env.NEXT_PUBLIC_BICO_PAYMASTER_URL ? createBicoPaymasterClient({
             paymasterUrl: process.env.NEXT_PUBLIC_BICO_PAYMASTER_URL
@@ -86,7 +90,7 @@ function App() {
             let formattedValidators: { name: string; isActive: boolean; address: string }[] = [];
             validationModules.map((module) => {
               installedValidators.forEach((validator) => {
-                if (validator == module.address) {
+                if (validator.toLowerCase() == module.address.toLowerCase()) {
                   formattedValidators.push({
                     name: module.name,
                     isActive: true,
@@ -103,11 +107,46 @@ function App() {
     fetchInstalledValidators()
   }, [nexusClient, isDeployed, receipt, isLoading])
 
+  const sendUserOp = async () => {
+    setIsLoading(true)
+    console.log(nexusClient, "nexusClient");
+    const hash = await nexusClient?.sendTransaction({
+      calls: [
+        {
+          to: "0x00000004171351c442B202678c48D8AB5B321E8f",
+          data: "0x"
+        }
+      ]
+    })
+
+    const receipt = await nexusClient?.waitForTransactionReceipt({ hash })
+    setReceipt(receipt)
+    setIsLoading(false)
+  }
+
   const createSession = async (sessionRequestedInfo: any) => {
-    console.log(sessionRequestedInfo, "sessionRequestedInfo");
     setIsLoadingCreateSession(true)
     if (!nexusClient) return;
-    const createSessionsResponse = await grantPermission(nexusClient as NexusClient,
+
+    // setup attesters
+    const sessionAccount = privateKeyToAccount(process.env.NEXT_PUBLIC_AI_AGENT_PV_KEY as Hex)
+    const smartSessionValidator = toSmartSessionsValidator({
+      account: nexusClient.account,
+      signer: sessionAccount,
+    });
+    const nexusSessionClient = nexusClient.extend(
+      smartSessionCreateActions(smartSessionValidator)
+    )
+    // const trustAttestersHash = await nexusSessionClient.trustAttesters()
+    // const userOpReceipt = await nexusSessionClient.waitForUserOperationReceipt({
+    //   hash: trustAttestersHash
+    // })
+    // const { status } = await nexusSessionClient?.waitForTransactionReceipt({
+    //   hash: userOpReceipt.receipt.transactionHash
+    // })
+
+    console.log(sessionRequestedInfo, "sessionRequestedInfo");
+    const createSessionsResponse = await nexusSessionClient.grantPermission(
       {
         account: nexusClient?.account,
         sessionRequestedInfo: [sessionRequestedInfo]
@@ -120,6 +159,7 @@ function App() {
       hash: createSessionsResponse.userOpHash
     })
     setReceipt(receipt)
+    console.log(sessionRequestedInfo, "sessionRequestedInfo");
 
     setSessionRequestedInfo(sessionRequestedInfo)
     setPermissionId(permissionId)
@@ -128,7 +168,36 @@ function App() {
     setIsLoadingCreateSession(false)
   }
 
-  const sendUserOpWithSmartSession = async () => {
+  // const sendDummySessionUserOp = async () => {
+  //   if (!nexusClient) return;
+  //   setIsLoading(true)
+  //   const sessionAccount = privateKeyToAccount(process.env.NEXT_PUBLIC_AI_AGENT_PV_KEY as Hex)
+  //   const smartSessionValidator = toSmartSessionsValidator({
+  //     account: nexusClient.account,
+  //     signer: sessionAccount,
+  //   });
+  //   const nexusSessionClient = nexusClient.extend(
+  //     smartSessionCreateActions(smartSessionValidator)
+  //   )
+
+  //   const sessionRequestedInfo: CreateSessionDataParams[] = [
+  //     {
+  //       sessionPublicKey: sessionAccount.address, // session key signer
+  //       actionPoliciesInfo: [
+  //         {
+  //           contractAddress: COUNTER_ADDRESS, // counter address
+  //           functionSelector: "0x273ea3e3" as Hex // function selector for increment count
+  //         }
+  //       ]
+  //     }
+  //   ]
+
+  //   const createSessionsResponse = await nexusSessionClient.grantPermission({
+  //     sessionRequestedInfo
+  //   })
+  // }
+
+  const sendUserOpWithSmartSessionTest = async () => {
     if (!nexusClient) return;
     setIsLoading(true)
     const sessionAccount = privateKeyToAccount(process.env.NEXT_PUBLIC_AI_AGENT_PV_KEY as Hex)
@@ -143,12 +212,18 @@ function App() {
 
     const nexusSessionClient = await createNexusSessionClient({
       chain: baseSepolia,
+      index: BigInt(8),
+      paymaster: process.env.NEXT_PUBLIC_BICO_PAYMASTER_URL ? createBicoPaymasterClient({
+        paymasterUrl: process.env.NEXT_PUBLIC_BICO_PAYMASTER_URL
+      }) : undefined,
       accountAddress: nexusClient.account.address, // this will the the user's SA address
       signer: sessionAccount, // session signer
-      transport: http(),
+      transport: http("https://base-sepolia-rpc.publicnode.com"),
       bundlerTransport: http(bundlerUrl),
+      module: smartSessionValidator
     })
     const useSmartSessionNexusClient = nexusSessionClient.extend(smartSessionUseActions(smartSessionValidator));
+    console.log(toFunctionSelector("function test() external"), "function selector 2");
     const userOpHash = await useSmartSessionNexusClient.usePermission({
       actions: [
         {
@@ -156,7 +231,55 @@ function App() {
           value: BigInt(0),
           callData: encodeFunctionData({
             abi: MOCK_EXCHANGE_ABI,
-            functionName: "test",
+            functionName: toFunctionSelector("function test() external"),
+          })
+        }
+      ],
+    })
+
+    const receipt = await nexusSessionClient?.waitForUserOperationReceipt({
+      hash: userOpHash
+    })
+    setReceipt(receipt)
+    setIsLoading(false)
+  }
+
+  const sendUserOpWithSmartSessionBuyApples = async () => {
+    if (!nexusClient) return;
+    setIsLoading(true)
+    const sessionAccount = privateKeyToAccount(process.env.NEXT_PUBLIC_AI_AGENT_PV_KEY as Hex)
+
+    const smartSessionValidator = toSmartSessionsValidator({
+      account: nexusClient.account,
+      signer: sessionAccount,
+      moduleData: {
+        permissionId: permissionId as Hex,
+      }
+    });
+
+    const nexusSessionClient = await createNexusSessionClient({
+      chain: baseSepolia,
+      index: BigInt(8),
+      paymaster: process.env.NEXT_PUBLIC_BICO_PAYMASTER_URL ? createBicoPaymasterClient({
+        paymasterUrl: process.env.NEXT_PUBLIC_BICO_PAYMASTER_URL
+      }) : undefined,
+      accountAddress: nexusClient.account.address, // this will the the user's SA address
+      signer: sessionAccount, // session signer
+      transport: http("https://base-sepolia-rpc.publicnode.com"),
+      bundlerTransport: http(bundlerUrl),
+      module: smartSessionValidator
+    })
+    const useSmartSessionNexusClient = nexusSessionClient.extend(smartSessionUseActions(smartSessionValidator));
+    console.log(toFunctionSelector("function test() external"), "function selector 2");
+    const userOpHash = await useSmartSessionNexusClient.usePermission({
+      actions: [
+        {
+          target: MOCK_EXCHANGE, // we pick the first action policy
+          value: BigInt(10000),
+          callData: encodeFunctionData({
+            abi: MOCK_EXCHANGE_ABI,
+            functionName: toFunctionSelector("function buyApple(uint256 appleAmount)"),
+            args: [BigInt(1)]
           })
         }
       ],
@@ -180,6 +303,27 @@ function App() {
           address: SMART_SESSION_VALIDATOR,
           initData: "0x",
           deInitData: "0x",
+          type: "validator"
+        }
+      });
+      const receipt: WaitForUserOperationReceiptReturnType = await nexusClient.waitForUserOperationReceipt({ hash: userOpHash })
+      setReceipt(receipt)
+    } catch (error) {
+      console.error("Error installing module:", error);
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const uninstallModule = async () => {
+    setIsLoading(true)
+    try {
+      if (!nexusClient) {
+        return;
+      };
+      const userOpHash = await nexusClient.uninstallModule({
+        module: {
+          address: SMART_SESSION_VALIDATOR,
           type: "validator"
         }
       });
@@ -218,6 +362,8 @@ function App() {
     );
   }
 
+  console.log('installedValidators', installedValidators);
+
   return (
     <div className="bg-gradient-to-br from-gray-900 to-black min-h-screen text-white p-4 font-mono flex items-center justify-center">
       <div className="max-w-4xl w-full bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
@@ -226,7 +372,14 @@ function App() {
         <div className="p-6 space-y-6">
           {
             nexusClient ? (
-              <AccountInfo walletClient={walletClient} nexusClient={nexusClient} setActiveValidationModule={setActiveValidationModule} activeValidationModule={activeValidationModule} />
+              <>
+                {hasPaymaster && (
+                  <div className="bg-green-500 text-white px-4 py-2 rounded-md text-center mb-4">
+                    🎉 Paymaster Active - Gas-free transactions enabled!
+                  </div>
+                )}
+                <AccountInfo walletClient={walletClient} nexusClient={nexusClient} setActiveValidationModule={setActiveValidationModule} activeValidationModule={activeValidationModule} />
+              </>
             ) : account.status === 'connected' ? (
               <div className="text-orange-400 animate-pulse text-center text-2xl">
                 Loading Account Info... 🔥
@@ -237,9 +390,8 @@ function App() {
               </div>
             )
           }
-
           <div>
-            {!installedValidators?.some(validator => validator.address === SMART_SESSION_VALIDATOR) && (
+            {!installedValidators?.some(validator => validator.address.toLowerCase() === SMART_SESSION_VALIDATOR.toLowerCase()) ? (
               <div className="flex space-x-4 flex-wrap">
                 <button
                   className="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded transition duration-300 ease-in-out transform hover:scale-105 mb-2"
@@ -248,8 +400,24 @@ function App() {
                   Install Smart Session
                 </button>
               </div>
+            ) : (
+              <div className="flex space-x-4 flex-wrap">
+                <button
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition duration-300 ease-in-out transform hover:scale-105 mb-2"
+                  onClick={() => uninstallModule()}
+                >
+                  Uninstall Smart Session
+                </button>
+              </div>
             )}
-
+            {/* <div className="flex space-x-4 flex-wrap">
+              <button
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition duration-300 ease-in-out transform hover:scale-105 mb-2"
+                onClick={() => uninstallModule()}
+              >
+                Uninstall Smart Session
+              </button>
+            </div> */}
             {
               permissionId && (
                 <button
@@ -268,14 +436,21 @@ function App() {
                 <div className="mt-5 flex-1 flex items-center space-x-2">
                   <button
                     className="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded transition duration-300 ease-in-out transform hover:scale-105 mb-2"
-                    onClick={sendUserOpWithSmartSession}
+                    onClick={sendUserOpWithSmartSessionBuyApples}
                   >
                     Buy apples for user
+                  </button>
+                  <button
+                    className="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded transition duration-300 ease-in-out transform hover:scale-105 mb-2"
+                    onClick={sendUserOpWithSmartSessionTest}
+                  >
+                    Call another function
                   </button>
                 </div>
               )
             }
           </div>
+          <button onClick={sendUserOp}>Send User Op</button>
           {isLoadingCreateSession && (
             <div className="text-orange-400 animate-pulse text-center text-2xl">
               Creating session... please wait 🔥
@@ -333,10 +508,10 @@ function App() {
                   <div>
                     <strong className="text-orange-300">User Operation Hash:</strong>
                     <button
-                      onClick={() => navigator.clipboard.writeText(receipt.userOpHash)}
+                      onClick={() => window.open(`https://dashboard.tenderly.co/tx/base-sepolia/${receipt.receipt.transactionHash}`)}
                       className="ml-2 text-white hover:text-orange-300 transition-colors"
                     >
-                      {receipt.userOpHash.slice(0, 10)}... (Click to copy)
+                      {receipt.userOpHash.slice(0, 10)}... (View on Tenderly)
                     </button>
                   </div>
                 )}

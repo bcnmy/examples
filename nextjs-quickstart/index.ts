@@ -21,18 +21,18 @@ export const createAccountAndSendTransaction = async () => {
     const address = await nexusClient.account.address;
     console.log("address", address)
     try {
-        const hash = await nexusClient.sendTransaction({ calls: [{to : '0xf5715961C550FC497832063a98eA34673ad7C816', value: parseEther('0.0001')}] });
+        const hash = await nexusClient.sendTransaction({ calls: [{ to: '0xf5715961C550FC497832063a98eA34673ad7C816', value: parseEther('0.0001') }] });
         console.log("Transaction hash: ", hash);
-    
-        const publicClient = createPublicClient({ 
+
+        const publicClient = createPublicClient({
             chain: baseSepolia,
             transport: http()
         })
-    
-        return {address , hash};
+
+        return { address, hash };
     }
     catch (error) {
-        return {address}
+        return { address }
     }
 }
 

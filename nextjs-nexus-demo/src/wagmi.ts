@@ -13,7 +13,7 @@ export function getConfig() {
     }),
     ssr: true,
     transports: {
-      [baseSepolia.id]: http(),
+      [baseSepolia.id]: http("https://base-sepolia-rpc.publicnode.com"),
     },
   })
 }

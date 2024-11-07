@@ -4,7 +4,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import SessionConfirm from './SessionConfirm';
 import { counterABI } from '../utils/constants/abis/counter';
-import { AGENT, COUNTER_ADDRESS, SESSION_VALIDATOR } from '@/utils/constants/addresses';
+import { AGENT, COUNTER_ADDRESS, MOCK_EXCHANGE, SESSION_VALIDATOR } from '@/utils/constants/addresses';
 import { SessionInfo } from '@/app/types/smartSessions';
 
 interface SessionCreationFormProps {
@@ -17,6 +17,7 @@ const PolicyBuilder: React.FC<SessionCreationFormProps> = ({ onSubmit }) => {
     const [functionSelector, setFunctionSelector] = useState<string>('incrementNumber');
     const [validAfter, setValidAfter] = useState<Date | undefined>(undefined);
     const [validUntil, setValidUntil] = useState<Date | undefined>(undefined);
+    const [method, setMethod] = useState<string>('');
     const [valueLimit, setValueLimit] = useState<string>('0');
     const [contractAddress, setContractAddress] = useState<string>('');
     const [contractABI, setContractABI] = useState<string>('');
@@ -41,10 +42,10 @@ const PolicyBuilder: React.FC<SessionCreationFormProps> = ({ onSubmit }) => {
                 const parsedABI = JSON.parse(contractABI);
                 const methods = parsedABI
                     .filter((item: any) => item.type === 'function')
-                    .map((item: any) => `${item.name}(${item.inputs.map((input: any) => `${input.type} ${input.name}`)})`);
+                    .map((item: any) => `function ${item.name}(${item.inputs.map((input: any) => `${input.type} ${input.name}`)})`);
                 setAvailableMethods(methods);
                 if (methods.length > 0) {
-                    setFunctionSelector(methods[0]);
+                    setMethod(methods[0]);
                 }
             } catch (error) {
                 console.error('Error parsing ABI:', error);
@@ -54,22 +55,18 @@ const PolicyBuilder: React.FC<SessionCreationFormProps> = ({ onSubmit }) => {
     }, [contractABI]);
 
     const handleSubmit = (e: React.FormEvent) => {
-        console.log(functionSelector, "functionSelector");
         e.preventDefault();
         const sessionInfo: SessionInfo = {
             sessionPublicKey: AGENT,
-            // sessionValidatorAddress: SESSION_VALIDATOR,
-            // sessionKeyData: AGENT,
-            // sessionValidAfter: sessionValidAfter ? Math.floor(sessionValidAfter.getTime() / 1000) : 0,
-            // sessionValidUntil: sessionValidUntil ? Math.floor(sessionValidUntil.getTime() / 1000) : 0,
+            sessionValidAfter: sessionValidAfter ? Math.floor(sessionValidAfter.getTime() / 1000) : 0,
+            sessionValidUntil: sessionValidUntil ? Math.floor(sessionValidUntil.getTime() / 1000) : 0,
             actionPoliciesInfo: [
                 {
-                    contractAddress: contractAddress,
-                    functionSelector: toFunctionSelector(`function test() returns(uint256)`),
-                    // validUntil: validUntil ? Math.floor(validUntil.getTime() / 1000) : 0,
-                    // validAfter: validAfter ? Math.floor(validAfter.getTime() / 1000) : 0,
-                    // rules: [],
-                    // valueLimit: parseEther("1")
+                    contractAddress,
+                    functionSelector: toFunctionSelector(method),
+                    validUntil: 0,
+                    validAfter: 0,
+                    valueLimit: BigInt(valueLimit)
                 }
             ]
         };
@@ -142,9 +139,9 @@ const PolicyBuilder: React.FC<SessionCreationFormProps> = ({ onSubmit }) => {
             <div className="flex flex-col">
                 <label className="text-white mb-1">Allow it to call:</label>
                 <select
-                    value={functionSelector}
+                    value={method}
                     onChange={(e) => {
-                        setFunctionSelector(
+                        setMethod(
                             e.target.value
                         )
                     }}

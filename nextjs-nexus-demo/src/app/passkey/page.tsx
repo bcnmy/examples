@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast'
 import { toWebAuthnKey, toPasskeyValidator, WebAuthnMode, createNexusClient, NexusClient } from '@biconomy/sdk'
 import { baseSepolia } from 'wagmi/chains'
 import Header from '@/components/Header'
-import { PASSKEY_VALIDATOR } from '@/utils/constants/addresses'
+import { PASSKEY_VALIDATOR_ADDRESS } from '@/utils/constants/addresses'
 
 const bundlerUrl = process.env.NEXT_PUBLIC_BUNDLER_URL;
 
@@ -42,7 +42,7 @@ export default function Passkey() {
                 nexusClient = await createNexusClient({
                     signer: walletClient,
                     chain: baseSepolia,
-                    index: BigInt(2),
+                    index: BigInt(8),
                     transport: http(),
                     bundlerTransport: http(bundlerUrl),
                 });
@@ -225,7 +225,7 @@ export default function Passkey() {
             nexusClientWithPasskeyValidator = await createNexusClient({
                 signer: walletClient,
                 chain: baseSepolia,
-                index: BigInt(2),
+                index: BigInt(8),
                 transport: http(),
                 module: passkeyValidator,
                 bundlerTransport: http(bundlerUrl),
@@ -360,7 +360,7 @@ export default function Passkey() {
                                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
                                         </svg>
                                     )}
-                                    Install Passkey {activePasskeyName || passkeyValidator ? `(${activePasskeyName || "Unkown"})` : "(Select a passkey first)"}
+                                    Install Passkey {activePasskeyName || passkeyValidator ? `(${activePasskeyName || "Unkown or outdated"})` : "(Select a passkey first)"}
                                 </button>
                             ) : (
                                 <button
