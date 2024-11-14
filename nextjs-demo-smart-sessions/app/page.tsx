@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import Chart from "@/components/ui/Chart";
 import { useMarketStore } from '@/app/stores/marketStore';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount } from 'wagmi'
 
 export default function Home() {
   const [price, setPrice] = useState<string>('0.00');
@@ -13,6 +15,7 @@ export default function Home() {
   const [animationClass, setAnimationClass] = useState('');
   const [isTrayOpen, setIsTrayOpen] = useState(false);
   const [tradeAmount, setTradeAmount] = useState('');
+  const { isConnected } = useAccount()
 
   const isBullish = useMarketStore(state => state.isBullish);
 
@@ -79,6 +82,10 @@ export default function Home() {
       ${animationClass}
     `}>
       <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-end mb-4">
+          {isConnected && <ConnectButton />}
+        </div>
+
         <Card>
           <CardContent className="p-6">
             <div className="space-y-6">
@@ -114,20 +121,40 @@ export default function Home() {
                 </div>
                 <div className="p-4 rounded-lg ">
                   <div className="relative">
-                    <button 
-                      onClick={() => setIsTrayOpen(!isTrayOpen)}
-                      className={`w-full h-full flex flex-col items-center justify-center p-4 rounded-lg 
-                        transform transition-all duration-500 hover:scale-110 hover:rotate-1
-                        ${isBullish 
-                          ? 'bg-emerald-500/80 hover:bg-emerald-400/90 hover:shadow-lg hover:shadow-emerald-500/50 text-white font-bold' 
-                          : 'bg-red-500/80 hover:bg-red-400/90 hover:shadow-lg hover:shadow-red-500/50 text-white font-bold'
-                        }
-                        ${animationClass}`}
-                    >
-                      <span className="text-lg mb-1">
-                        Auto Trade
-                      </span>
-                    </button>
+                    {isConnected ? (
+                      <button 
+                        onClick={() => setIsTrayOpen(!isTrayOpen)}
+                        className={`w-full h-full flex flex-col items-center justify-center p-4 rounded-lg 
+                          transform transition-all duration-500 hover:scale-110 hover:rotate-1
+                          ${isBullish 
+                            ? 'bg-emerald-500/80 hover:bg-emerald-400/90 hover:shadow-lg hover:shadow-emerald-500/50' 
+                            : 'bg-red-500/80 hover:bg-red-400/90 hover:shadow-lg hover:shadow-red-500/50'
+                          } text-white font-bold
+                          ${animationClass}`}
+                      >
+                        <span className="text-lg mb-1">
+                          Auto Trade
+                        </span>
+                      </button>
+                    ) : (
+                      <ConnectButton.Custom>
+                        {({ openConnectModal }) => (
+                          <button
+                            onClick={openConnectModal}
+                            className={`w-full h-full flex flex-col items-center justify-center p-4 rounded-lg 
+                              transform transition-all duration-500 hover:scale-110
+                              ${isBullish 
+                                ? 'bg-emerald-500/80 hover:bg-emerald-400/90 hover:shadow-lg hover:shadow-emerald-500/50' 
+                                : 'bg-red-500/80 hover:bg-red-400/90 hover:shadow-lg hover:shadow-red-500/50'
+                              } text-white font-bold`}
+                          >
+                            <span className="text-lg mb-1">
+                              Connect Wallet
+                            </span>
+                          </button>
+                        )}
+                      </ConnectButton.Custom>
+                    )}
 
                     {/* Sliding Tray */}
                     <div className={`absolute left-0 right-0 overflow-hidden transition-all duration-500 ease-in-out
