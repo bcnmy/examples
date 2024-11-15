@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { createChart, IChartApi, ISeriesApi, CandlestickData, Time, LineWidth, IPriceLine } from 'lightweight-charts';
+import { createChart, type IChartApi, type ISeriesApi, type CandlestickData, type Time, type LineWidth, type IPriceLine } from 'lightweight-charts';
 import { BinanceService } from '@/app/services/binanceService';
 import { CrossType } from '@/app/services/crossDetector';
 import { TIMEFRAME_SECONDS } from './constants';
-import { ChartProps } from './types';
+import type { ChartProps } from './types';
 import { useMarketStore } from '@/app/stores/marketStore';
 import { candlestickSeriesOptions, chartConfig, longMAOptions, shortMAOptions } from '@/app/styles/theme';
 
@@ -19,7 +19,8 @@ const Chart = ({ symbol }: ChartProps) => {
   const rightStateLineRef = useRef<IPriceLine | null>(null);
   const setIsBullish = useMarketStore(state => state.setIsBullish);
   
-  useEffect(() => {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+    useEffect(() => {
     if (!chartContainerRef.current) return;
   
     const binanceService = new BinanceService(symbol, 5, 15);

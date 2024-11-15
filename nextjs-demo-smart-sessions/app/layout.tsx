@@ -9,6 +9,9 @@ import { baseSepolia } from 'wagmi/chains';
 import { config } from './config/wallet'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import '@rainbow-me/rainbowkit/styles.css';
+import { Toaster } from "@/app/components/ui/toaster"
+import { useEffect } from 'react';
+import { useState } from 'react';
 
 // Move these initializations outside the component
 const queryClient = new QueryClient()
@@ -24,6 +27,12 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const isBullish = useMarketStore(state => state.isBullish);
   
   const bgColor = isBullish === null 
@@ -38,10 +47,11 @@ export default function RootLayout({
         <QueryClientProvider client={queryClient}>
           <WagmiProvider config={config}>
             <RainbowKitProvider initialChain={baseSepolia}>
-              {children}
+              {mounted ? children : null}
             </RainbowKitProvider>
           </WagmiProvider>
         </QueryClientProvider>
+        <Toaster />
       </body>
     </html>
   );
