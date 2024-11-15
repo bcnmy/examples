@@ -1,0 +1,30 @@
+{
+  "name": "uniswap-config",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "lint": "biome check --write .",
+    "test": "npx hardhat test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.12",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.11",
+    "@nomicfoundation/hardhat-viem": "^2.0.5",
+    "chai": "4.3.10",
+    "chai-as-promised": "7.1.1",
+    "dotenv": "^16.4.5",
+    "hardhat": "^2.22.15",
+    "hardhat-deploy": "^0.14.0",
+    "viem": "^2.21.45"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.1"
+  }
+}

@@ -6,11 +6,11 @@ import Chart from "@/components/ui/Chart";
 import { useMarketStore } from '@/app/stores/marketStore';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi'
+import { TradingTray } from '@/app/components/TradingTray';
 
 export default function Home() {
   const [price, setPrice] = useState<string>('0.00');
   const [priceChange, setPriceChange] = useState<string>('0.00');
-  const [volume, setVolume] = useState<string>('0.00');
   const [isLoading, setIsLoading] = useState(true);
   const [animationClass, setAnimationClass] = useState('');
   const [isTrayOpen, setIsTrayOpen] = useState(false);
@@ -28,7 +28,6 @@ export default function Home() {
         
         setPrice(parseFloat(data.lastPrice).toFixed(2));
         setPriceChange(parseFloat(data.priceChangePercent).toFixed(2));
-        setVolume(parseFloat(data.volume).toFixed(2));
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching initial data:', error);
@@ -45,7 +44,6 @@ export default function Home() {
       const data = JSON.parse(event.data);
       setPrice(parseFloat(data.c).toFixed(2));
       setPriceChange(parseFloat(data.P).toFixed(2));
-      setVolume(parseFloat(data.v).toFixed(2));
     };
 
     return () => ws.close();
@@ -60,6 +58,12 @@ export default function Home() {
 
     return () => clearTimeout(timer);
   }, [isBullish]);
+
+  const handleTrade = async () => {
+    // Your trade logic here
+    console.log(`Starting auto-${isBullish ? 'long' : 'short'} with ${tradeAmount} USDC`);
+    setIsTrayOpen(false);
+  };
 
   if (isLoading) {
     return (
@@ -82,22 +86,23 @@ export default function Home() {
       ${animationClass}
     `}>
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-end mb-4">
-          {isConnected && <ConnectButton />}
-        </div>
-
         <Card>
           <CardContent className="p-6">
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-white">ETH/USDC</h1>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-white">${price}</p>
-                  <p className={`text-sm font-medium ${
-                    isBullish ? 'text-emerald-500' : 'text-red-500'
-                  }`}>
-                    {priceChange}%
-                  </p>
+                <div className="flex items-center gap-4">
+                  {isConnected && <ConnectButton />}
+                  <div className="relative z-20">
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-white">${price}</p>
+                      <p className={`text-sm font-medium ${
+                        isBullish ? 'text-emerald-500' : 'text-red-500'
+                      }`}>
+                        {priceChange}%
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
               
@@ -156,43 +161,13 @@ export default function Home() {
                       </ConnectButton.Custom>
                     )}
 
-                    {/* Sliding Tray */}
-                    <div className={`absolute left-0 right-0 overflow-hidden transition-all duration-500 ease-in-out
-                      ${isTrayOpen ? 'max-h-48 opacity-100 mt-2' : 'max-h-0 opacity-0'}
-                    `}>
-                      <div className={`p-4 rounded-lg backdrop-blur-sm border-2
-                        ${isBullish 
-                          ? 'bg-emerald-950/50 border-emerald-500/70' 
-                          : 'bg-red-950/50 border-red-500/70'
-                        }`}
-                      >
-                        <label className="block text-white text-sm mb-2">Trade Amount (USDC)</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="number"
-                            value={tradeAmount}
-                            onChange={(e) => setTradeAmount(e.target.value)}
-                            placeholder="Enter amount..."
-                            className="w-full bg-black/30 text-white px-3 py-2 rounded-lg 
-                              border-2 border-white/20 focus:outline-none focus:border-white/40"
-                          />
-                          <button 
-                            onClick={() => {
-                              // Add your trade logic here
-                              console.log(`Starting auto-${isBullish ? 'long' : 'short'} with ${tradeAmount} USDC`);
-                              setIsTrayOpen(false);
-                            }}
-                            className={`px-4 py-2 rounded-lg font-bold whitespace-nowrap
-                              ${isBullish 
-                                ? 'bg-emerald-500/80 hover:bg-emerald-400/90' 
-                                : 'bg-red-500/80 hover:bg-red-400/90'
-                              } text-white`}
-                          >
-                            Start Bot
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                    <TradingTray
+                      isTrayOpen={isTrayOpen}
+                      isBullish={isBullish ?? false}
+                      tradeAmount={tradeAmount}
+                      onTradeAmountChange={setTradeAmount}
+                      onTrade={handleTrade}
+                    />
                   </div>
                 </div>
                 <div className="p-4 rounded-lg  text-right">

@@ -1,0 +1,22 @@
+# Dependency directories
+node_modules/
+.pnp/
+.pnp.js
+
+# Hardhat files
+cache/
+artifacts/
+typechain-types/
+
+# Testing
+coverage/
+coverage.json
+
+# Production build
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.development. 
