@@ -17,7 +17,7 @@ import { time } from "@nomicfoundation/hardhat-network-helpers"
 import { expect } from "chai"
 import chaiAsPromised from "chai-as-promised"
 import chai from "chai"
-import { INITIAL_SQRT_PRICE, POOL_FEE } from "../constants"
+import { POOL_FEE } from "../constants"
 chai.use(chaiAsPromised)
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -128,7 +128,7 @@ describe("MockPool", () => {
       const recipient = ownerAddress
       const deadline = BigInt(await time.latest()) + 3600n
 
-      const commands = "0x01"
+      const commands = "0x00"
       const inputs = [encodeSwapParams(recipient, true, swapAmount)]
 
       const initialWethBalance = await weth.read.balanceOf([ownerAddress])

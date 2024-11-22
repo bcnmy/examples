@@ -14,6 +14,8 @@ export function useAutoTrade() {
 
   const assetBalances = useAssetBalances(nexusAddress)
 
+  console.log({ assetBalances })
+
   const { toast } = useToast()
 
   const prevIsBullishRef = useRef(isBullish)

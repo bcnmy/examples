@@ -11,7 +11,7 @@ import type {
   MockToken__factory,
   MockPool__factory
 } from "../typechain-types/factories/contracts"
-import { INITIAL_SQRT_PRICE, POOL_FEE } from "../constants"
+import { POOL_FEE } from "../constants"
 
 type DeployFaucetFixture = {
   faucet: GetContractReturnType<typeof Faucet__factory.abi>

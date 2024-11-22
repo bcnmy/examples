@@ -72,7 +72,7 @@ contract MockPool is Ownable {
         bytes calldata commands,
         bytes[] calldata inputs,
         uint256 deadline
-    ) external payable returns (int256 amount0, int256 amount1) {
+    ) external returns (int256 amount0, int256 amount1) {
         if (block.timestamp > deadline) {
             revert TransactionDeadlinePassed(deadline, block.timestamp);
         }

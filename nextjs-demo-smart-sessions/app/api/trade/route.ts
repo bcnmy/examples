@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const amount = BigInt(amount_.value)
     const sessionData = JSON.parse(sessionData_)
 
-    console.log("trade request received", { req })
+    console.log(`signal to trade ${isBullish ? "buy" : "sell"} ${amount}`)
 
     // Create a public client to check allowances
     const publicClient = createPublicClient({
@@ -70,10 +70,10 @@ export async function POST(request: Request) {
 
     const isApproved = await ApprovalStore.isApproved(userAddress)
 
-    console.log("isApproved", { isApproved })
-
     // Check if user has already approved
     if (!isApproved) {
+      console.log("not approved", { isApproved })
+
       // Check token allowance before proceeding
       const tokenAddress = isBullish ? MOCK_WETH_ADDRESS : MOCK_USDC_ADDRESS
       const allowance = (await publicClient.readContract({
@@ -170,7 +170,7 @@ export async function POST(request: Request) {
       await ApprovalStore.setApproved(userAddress)
     }
 
-    const commands = isBullish ? "0x01" : "0x00" // Single swap command
+    const commands = isBullish ? "0x01" : "0x00"
     const inputs = [
       encodeAbiParameters(
         [
@@ -181,7 +181,7 @@ export async function POST(request: Request) {
         [userAddress, !isBullish, amount]
       )
     ]
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600) // 1 hour
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600 * 24 * 30) // 30 days
 
     const executeModule = toSmartSessionsValidator({
       signer: sessionKeyAccount,
@@ -195,7 +195,7 @@ export async function POST(request: Request) {
 
     const args = [commands, inputs, deadline]
 
-    console.log("args", { args, amount })
+    console.log("args", { args })
 
     const userOpHash = await executeClient.usePermission({
       calls: [
