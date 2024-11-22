@@ -1,344 +1,312 @@
-import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers"
 import {
-	encodeAbiParameters,
-	type Account,
-	type Address,
-	type PublicClient,
-	type WalletClient,
-} from "viem";
+  encodeAbiParameters,
+  type Account,
+  type Address,
+  type PublicClient,
+  type WalletClient
+} from "viem"
 import {
-	deployFaucetFixture,
-	parseWETH,
-	parseUSDC,
-	CURRENT_PRICE_WETH_PER_USDC,
-} from "../fixtures/deployFaucetFixture";
-import { time } from "@nomicfoundation/hardhat-network-helpers";
+  deployFaucetFixture,
+  parseWETH,
+  parseUSDC,
+  CURRENT_PRICE_WETH_PER_USDC
+} from "../fixtures/deployFaucetFixture"
+import { time } from "@nomicfoundation/hardhat-network-helpers"
 
-import { expect } from "chai";
-import chaiAsPromised from "chai-as-promised";
-import chai from "chai";
-import { INITIAL_SQRT_PRICE, POOL_FEE } from "../constants";
-chai.use(chaiAsPromised);
+import { expect } from "chai"
+import chaiAsPromised from "chai-as-promised"
+import chai from "chai"
+import { INITIAL_SQRT_PRICE, POOL_FEE } from "../constants"
+chai.use(chaiAsPromised)
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-type AnyData = any;
+type AnyData = any
 
 describe("MockPool", () => {
-	let weth: AnyData;
-	let usdc: AnyData;
-	let pool: AnyData;
-	let owner: WalletClient;
-	let ownerAccount: Account;
-	let ownerAddress: Address;
-	let user: WalletClient;
-	let userAccount: Account;
-	let userAddress: Address;
-	let publicClient: PublicClient;
+  let weth: AnyData
+  let usdc: AnyData
+  let pool: AnyData
+  let owner: WalletClient
+  let ownerAccount: Account
+  let ownerAddress: Address
+  let user: WalletClient
+  let userAccount: Account
+  let userAddress: Address
+  let publicClient: PublicClient
 
-	beforeEach(async () => {
-		const {
-			weth: weth_,
-			usdc: usdc_,
-			pool: pool_,
-			owner: owner_,
-			user: user_,
-			publicClient: publicClient_,
-		} = await loadFixture(deployFaucetFixture);
+  beforeEach(async () => {
+    const {
+      weth: weth_,
+      usdc: usdc_,
+      pool: pool_,
+      owner: owner_,
+      user: user_,
+      publicClient: publicClient_
+    } = await loadFixture(deployFaucetFixture)
 
-		weth = weth_;
-		usdc = usdc_;
-		pool = pool_;
-		owner = owner_;
-		user = user_;
-		publicClient = publicClient_;
-		ownerAddress = owner.account?.address as Address;
-		userAddress = user.account?.address as Address;
-		ownerAccount = owner.account as Account;
-		userAccount = user.account as Account;
-	});
+    weth = weth_
+    usdc = usdc_
+    pool = pool_
+    owner = owner_
+    user = user_
+    publicClient = publicClient_
+    ownerAddress = owner.account?.address as Address
+    userAddress = user.account?.address as Address
+    ownerAccount = owner.account as Account
+    userAccount = user.account as Account
+  })
 
-	describe("Deployment", () => {
-		it("Should set the correct token addresses", async () => {
-			expect((await pool.read.token0()).toLowerCase()).to.equal(
-				weth.address.toLowerCase(),
-			);
-			expect((await pool.read.token1()).toLowerCase()).to.equal(
-				usdc.address.toLowerCase(),
-			);
-		});
+  describe("Deployment", () => {
+    it("Should set the correct token addresses", async () => {
+      expect((await pool.read.token0()).toLowerCase()).to.equal(
+        weth.address.toLowerCase()
+      )
+      expect((await pool.read.token1()).toLowerCase()).to.equal(
+        usdc.address.toLowerCase()
+      )
+    })
 
-		it("Should set the correct fee", async () => {
-			expect(await pool.read.fee()).to.equal(POOL_FEE);
-		});
+    it("Should set the correct fee", async () => {
+      expect(await pool.read.fee()).to.equal(POOL_FEE)
+    })
+  })
 
-		it("Should set the initial sqrt price", async () => {
-			const slot0 = await pool.read.slot0();
-			expect(slot0[0]).to.equal(INITIAL_SQRT_PRICE);
-		});
-	});
+  describe("Price and State Management", () => {
+    it("Should allow owner to set current price", async () => {
+      const newPrice = 4000n * 1000000n // 4000 USDC per WETH
 
-	describe("Price and State Management", () => {
-		it("Should allow setting new price and tick", async () => {
-			const newSqrtPrice = 2000000000000000000000000000000n;
-			const newTick = 100;
+      // Owner should be able to set the price
+      await pool.write.setCurrentPrice([newPrice], {
+        account: ownerAccount
+      })
 
-			await pool.write.setPrice([newSqrtPrice, newTick]);
+      expect(await pool.read.CURRENT_PRICE_WETH_PER_USDC()).to.equal(newPrice)
+    })
 
-			const slot0 = await pool.read.slot0();
-			expect(slot0[0]).to.equal(newSqrtPrice);
-			expect(slot0[1]).to.equal(newTick);
-		});
+    it("Should not allow non-owner to set current price", async () => {
+      const newPrice = 4000n * 1000000n
 
-		it("Should allow setting liquidity", async () => {
-			const newLiquidity = 1000000n;
+      // User (non-owner) should not be able to set the price
+      await expect(
+        pool.write.setCurrentPrice([newPrice], {
+          account: userAccount
+        })
+      ).to.be.rejectedWith("OwnableUnauthorizedAccount")
+    })
+  })
 
-			await pool.write.setLiquidity([newLiquidity]);
+  describe("Swaps", () => {
+    beforeEach(async () => {
+      // Mint tokens to owner for testing
+      await weth.write.mint([ownerAddress, parseWETH(1000)], {
+        account: ownerAccount
+      })
+      await usdc.write.mint([ownerAddress, parseUSDC(1000)], {
+        account: ownerAccount
+      })
 
-			expect(await pool.read.liquidity()).to.equal(newLiquidity);
-		});
+      // Increase pool liquidity significantly
+      await weth.write.mint([pool.address, parseWETH(1000)], {
+        account: ownerAccount
+      })
+      await usdc.write.mint([pool.address, parseUSDC(3900000)], {
+        account: ownerAccount
+      })
 
-		it("Should allow owner to set current price", async () => {
-			const newPrice = 4000n * 1000000n; // 4000 USDC per WETH
+      // Approve tokens for swapping
+      await weth.write.approve([pool.address, parseWETH(1000)], {
+        account: ownerAccount
+      })
+      await usdc.write.approve([pool.address, parseUSDC(1000)], {
+        account: ownerAccount
+      })
+    })
 
-			// Owner should be able to set the price
-			await pool.write.setCurrentPrice([newPrice], {
-				account: ownerAccount,
-			});
+    it("Should execute WETH to USDC swap", async () => {
+      const swapAmount = parseWETH(0.01)
+      const recipient = ownerAddress
+      const deadline = BigInt(await time.latest()) + 3600n
 
-			expect(await pool.read.CURRENT_PRICE_WETH_PER_USDC()).to.equal(newPrice);
-		});
+      const commands = "0x01"
+      const inputs = [encodeSwapParams(recipient, true, swapAmount)]
 
-		it("Should not allow non-owner to set current price", async () => {
-			const newPrice = 4000n * 1000000n;
+      const initialWethBalance = await weth.read.balanceOf([ownerAddress])
+      const initialUsdcBalance = await usdc.read.balanceOf([ownerAddress])
 
-			// User (non-owner) should not be able to set the price
-			await expect(
-				pool.write.setCurrentPrice([newPrice], {
-					account: userAccount,
-				}),
-			).to.be.rejectedWith("OwnableUnauthorizedAccount");
-		});
+      await pool.write.execute([commands, inputs, deadline], {
+        account: ownerAccount
+      })
 
-		// Optional: Test that swaps use the new price
-		it("Should use updated price for swaps", async () => {
-			// First mint some tokens to the owner
-			await weth.write.mint([ownerAddress, parseWETH(1)], {
-				account: ownerAccount,
-			});
+      const finalWethBalance = await weth.read.balanceOf([ownerAddress])
+      const finalUsdcBalance = await usdc.read.balanceOf([ownerAddress])
 
-			// Approve tokens for the pool
-			await weth.write.approve([pool.address, parseWETH(1)], {
-				account: ownerAccount,
-			});
+      // WETH balance should decrease by swap amount
+      expect(finalWethBalance).to.equal(initialWethBalance - swapAmount)
 
-			const newPrice = 4000n * 1000000n; // 4000 USDC per WETH
-			await pool.write.setCurrentPrice([newPrice], {
-				account: ownerAccount,
-			});
+      // USDC balance should increase by (WETH amount * price)
+      // Need to adjust for decimal differences: WETH (18) vs USDC (6)
+      const expectedUsdcAmount =
+        (swapAmount * CURRENT_PRICE_WETH_PER_USDC) / 10n ** 18n
+      expect(finalUsdcBalance).to.equal(initialUsdcBalance + expectedUsdcAmount)
+    })
 
-			const swapAmount = parseWETH(0.01);
-			const recipient = ownerAddress;
-			const deadline = BigInt(await time.latest()) + 3600n;
-			const commands = "0x01";
-			const inputs = [encodeSwapParams(recipient, true, swapAmount, 0n)];
+    it("Should execute USDC to WETH swap", async () => {
+      const swapAmount = parseUSDC(39)
+      const recipient = ownerAddress
+      const deadline = BigInt(await time.latest()) + 3600n
 
-			const initialUsdcBalance = await usdc.read.balanceOf([ownerAddress]);
+      const commands = "0x01"
+      const inputs = [encodeSwapParams(recipient, false, swapAmount)]
 
-			await pool.write.execute([commands, inputs, deadline], {
-				account: ownerAccount,
-			});
+      const initialWethBalance = await weth.read.balanceOf([ownerAddress])
+      const initialUsdcBalance = await usdc.read.balanceOf([ownerAddress])
 
-			const finalUsdcBalance = await usdc.read.balanceOf([ownerAddress]);
+      await pool.write.execute([commands, inputs, deadline], {
+        account: ownerAccount
+      })
 
-			// Should receive USDC based on new price
-			const expectedUsdcAmount = (swapAmount * newPrice) / 10n ** 18n;
-			expect(finalUsdcBalance).to.equal(
-				initialUsdcBalance + expectedUsdcAmount,
-			);
-		});
-	});
+      const finalWethBalance = await weth.read.balanceOf([ownerAddress])
+      const finalUsdcBalance = await usdc.read.balanceOf([ownerAddress])
 
-	describe("Swaps", () => {
-		beforeEach(async () => {
-			// Mint tokens to owner for testing
-			await weth.write.mint([ownerAddress, parseWETH(1000)], {
-				account: ownerAccount,
-			});
-			await usdc.write.mint([ownerAddress, parseUSDC(1000)], {
-				account: ownerAccount,
-			});
+      // USDC balance should decrease by swap amount
+      expect(finalUsdcBalance).to.equal(initialUsdcBalance - swapAmount)
 
-			// Increase pool liquidity significantly
-			await weth.write.mint([pool.address, parseWETH(1000)], {
-				account: ownerAccount,
-			});
-			await usdc.write.mint([pool.address, parseUSDC(3900000)], {
-				account: ownerAccount,
-			});
+      // WETH balance should increase by (USDC amount / price)
+      // Need to adjust for decimal differences: USDC (6) vs WETH (18)
+      const expectedWethAmount =
+        (swapAmount * 10n ** 18n) / CURRENT_PRICE_WETH_PER_USDC
+      expect(finalWethBalance).to.equal(initialWethBalance + expectedWethAmount)
+    })
 
-			// Approve tokens for swapping
-			await weth.write.approve([pool.address, parseWETH(1000)], {
-				account: ownerAccount,
-			});
-			await usdc.write.approve([pool.address, parseUSDC(1000)], {
-				account: ownerAccount,
-			});
-		});
+    it("Should revert on expired deadline", async () => {
+      const swapAmount = parseWETH(0.01)
+      const recipient = ownerAddress
+      const deadline = BigInt(await time.latest()) - 3600n // Past deadline
 
-		it("Should execute WETH to USDC swap", async () => {
-			const swapAmount = parseWETH(0.01);
-			const recipient = ownerAddress;
-			const deadline = BigInt(await time.latest()) + 3600n;
+      const commands = "0x01"
+      const inputs = [encodeSwapParams(recipient, true, swapAmount)]
 
-			const commands = "0x01";
-			const inputs = [encodeSwapParams(recipient, true, swapAmount, 0n)];
+      await expect(
+        pool.write.execute([commands, inputs, deadline], {
+          account: ownerAccount
+        })
+      ).to.be.rejectedWith("TransactionDeadlinePassed")
+    })
 
-			const initialWethBalance = await weth.read.balanceOf([ownerAddress]);
-			const initialUsdcBalance = await usdc.read.balanceOf([ownerAddress]);
+    it("Should revert on empty commands", async () => {
+      const deadline = BigInt(await time.latest()) + 3600n
 
-			await pool.write.execute([commands, inputs, deadline], {
-				account: ownerAccount,
-			});
+      await expect(
+        pool.write.execute(["0x", [], deadline], {
+          account: ownerAccount
+        })
+      ).to.be.rejectedWith("InvalidCommand")
+    })
 
-			const finalWethBalance = await weth.read.balanceOf([ownerAddress]);
-			const finalUsdcBalance = await usdc.read.balanceOf([ownerAddress]);
+    it("Should revert on zero amount", async () => {
+      const recipient = ownerAddress
+      const deadline = BigInt(await time.latest()) + 3600n
 
-			// WETH balance should decrease by swap amount
-			expect(finalWethBalance).to.equal(initialWethBalance - swapAmount);
+      const commands = "0x00"
+      const inputs = [encodeSwapParams(recipient, true, 0n)]
 
-			// USDC balance should increase by (WETH amount * price)
-			// Need to adjust for decimal differences: WETH (18) vs USDC (6)
-			const expectedUsdcAmount =
-				(swapAmount * CURRENT_PRICE_WETH_PER_USDC) / 10n ** 18n;
-			expect(finalUsdcBalance).to.equal(
-				initialUsdcBalance + expectedUsdcAmount,
-			);
-		});
+      await expect(
+        pool.write.execute([commands, inputs, deadline], {
+          account: ownerAccount
+        })
+      ).to.be.rejectedWith("ZeroAmount")
+    })
 
-		it("Should execute USDC to WETH swap", async () => {
-			const swapAmount = parseUSDC(39);
-			const recipient = ownerAddress;
-			const deadline = BigInt(await time.latest()) + 3600n;
+    it("Should revert on invalid command", async () => {
+      const swapAmount = parseWETH(0.01)
+      const recipient = ownerAddress
+      const deadline = BigInt(await time.latest()) + 3600n
 
-			const commands = "0x01";
-			const inputs = [encodeSwapParams(recipient, false, swapAmount, 0n)];
+      const commands = "0x02"
+      const inputs = [encodeSwapParams(recipient, true, swapAmount)]
 
-			const initialWethBalance = await weth.read.balanceOf([ownerAddress]);
-			const initialUsdcBalance = await usdc.read.balanceOf([ownerAddress]);
+      await expect(
+        pool.write.execute([commands, inputs, deadline], {
+          account: ownerAccount
+        })
+      ).to.be.rejectedWith("InvalidCommand")
+    })
+  })
 
-			await pool.write.execute([commands, inputs, deadline], {
-				account: ownerAccount,
-			});
+  describe("Liquidity Management", () => {
+    it("Should allow adding liquidity directly to pool", async () => {
+      // First mint tokens to the owner
+      await weth.write.mint([ownerAddress, parseWETH(10)], {
+        account: ownerAccount
+      })
+      await usdc.write.mint([ownerAddress, parseUSDC(39000)], {
+        account: ownerAccount
+      })
 
-			const finalWethBalance = await weth.read.balanceOf([ownerAddress]);
-			const finalUsdcBalance = await usdc.read.balanceOf([ownerAddress]);
+      // Get initial balances
+      const initialWethBalance = await weth.read.balanceOf([pool.address])
+      const initialUsdcBalance = await usdc.read.balanceOf([pool.address])
 
-			// USDC balance should decrease by swap amount
-			expect(finalUsdcBalance).to.equal(initialUsdcBalance - swapAmount);
+      // Approve tokens for the pool
+      await weth.write.approve([pool.address, parseWETH(10)], {
+        account: ownerAccount
+      })
+      await usdc.write.approve([pool.address, parseUSDC(39000)], {
+        account: ownerAccount
+      })
 
-			// WETH balance should increase by (USDC amount / price)
-			// Need to adjust for decimal differences: USDC (6) vs WETH (18)
-			const expectedWethAmount =
-				(swapAmount * 10n ** 18n) / CURRENT_PRICE_WETH_PER_USDC;
-			expect(finalWethBalance).to.equal(
-				initialWethBalance + expectedWethAmount,
-			);
-		});
+      // Transfer tokens to the pool
+      await weth.write.transfer([pool.address, parseWETH(10)], {
+        account: ownerAccount
+      })
+      await usdc.write.transfer([pool.address, parseUSDC(39000)], {
+        account: ownerAccount
+      })
 
-		it("Should revert on expired deadline", async () => {
-			const swapAmount = parseWETH(0.01);
-			const recipient = ownerAddress;
-			const deadline = BigInt(await time.latest()) - 3600n; // Past deadline
+      // Check pool balances increased by the correct amount
+      const finalWethBalance = await weth.read.balanceOf([pool.address])
+      const finalUsdcBalance = await usdc.read.balanceOf([pool.address])
 
-			const commands = "0x01";
-			const inputs = [encodeSwapParams(recipient, true, swapAmount, 0n)];
+      expect(finalWethBalance).to.equal(initialWethBalance + parseWETH(10))
+      expect(finalUsdcBalance).to.equal(initialUsdcBalance + parseUSDC(39000))
+    })
+  })
 
-			await expect(
-				pool.write.execute([commands, inputs, deadline], {
-					account: ownerAccount,
-				}),
-			).to.be.rejectedWith("TransactionDeadlinePassed");
-		});
+  describe("Price Management", () => {
+    it("Should revert on setting zero price", async () => {
+      await expect(
+        pool.write.setCurrentPrice([0n], {
+          account: ownerAccount
+        })
+      ).to.be.rejectedWith("ZeroAmount")
+    })
+  })
 
-		it("Should revert on empty commands", async () => {
-			const deadline = BigInt(await time.latest()) + 3600n;
-
-			await expect(
-				pool.write.execute(["0x", [], deadline], {
-					account: ownerAccount,
-				}),
-			).to.be.rejectedWith("V3InvalidSwap");
-		});
-
-		it("Should revert on zero amount", async () => {
-			const recipient = ownerAddress;
-			const deadline = BigInt(await time.latest()) + 3600n;
-
-			const commands = "0x01";
-			const inputs = [encodeSwapParams(recipient, true, 0n, 0n)];
-
-			await expect(
-				pool.write.execute([commands, inputs, deadline], {
-					account: ownerAccount,
-				}),
-			).to.be.rejectedWith("V3InvalidSwap");
-		});
-	});
-
-	describe("Liquidity Management", () => {
-		it("Should allow adding liquidity directly to pool", async () => {
-			// First mint tokens to the owner
-			await weth.write.mint([ownerAddress, parseWETH(10)], {
-				account: ownerAccount,
-			});
-			await usdc.write.mint([ownerAddress, parseUSDC(39000)], {
-				account: ownerAccount,
-			});
-
-			// Get initial balances
-			const initialWethBalance = await weth.read.balanceOf([pool.address]);
-			const initialUsdcBalance = await usdc.read.balanceOf([pool.address]);
-
-			// Approve tokens for the pool
-			await weth.write.approve([pool.address, parseWETH(10)], {
-				account: ownerAccount,
-			});
-			await usdc.write.approve([pool.address, parseUSDC(39000)], {
-				account: ownerAccount,
-			});
-
-			// Transfer tokens to the pool
-			await weth.write.transfer([pool.address, parseWETH(10)], {
-				account: ownerAccount,
-			});
-			await usdc.write.transfer([pool.address, parseUSDC(39000)], {
-				account: ownerAccount,
-			});
-
-			// Check pool balances increased by the correct amount
-			const finalWethBalance = await weth.read.balanceOf([pool.address]);
-			const finalUsdcBalance = await usdc.read.balanceOf([pool.address]);
-
-			expect(finalWethBalance).to.equal(initialWethBalance + parseWETH(10));
-			expect(finalUsdcBalance).to.equal(initialUsdcBalance + parseUSDC(39000));
-		});
-	});
-});
+  describe("Pool Token Management", () => {
+    it("Should revert on minting zero amounts", async () => {
+      await expect(
+        pool.write.mintPoolTokens([0n, 0n], {
+          account: ownerAccount
+        })
+      ).to.be.rejectedWith("ZeroAmount")
+    })
+  })
+})
 
 // Helper function to encode swap parameters
-function encodeSwapParams(
-	recipient: Address,
-	zeroForOne: boolean,
-	amountSpecified: bigint,
-	sqrtPriceLimitX96: bigint,
+// biome-ignore lint/suspicious/noExportsInTest: <explanation>
+export function encodeSwapParams(
+  recipient: Address,
+  zeroForOne: boolean,
+  amountSpecified: bigint
 ): string {
-	return encodeAbiParameters(
-		[
-			{ name: "recipient", type: "address" },
-			{ name: "zeroForOne", type: "bool" },
-			{ name: "amountSpecified", type: "int256" },
-			{ name: "sqrtPriceLimitX96", type: "uint160" },
-		],
-		[recipient, zeroForOne, amountSpecified, sqrtPriceLimitX96],
-	);
+  return encodeAbiParameters(
+    [
+      { name: "recipient", type: "address" },
+      { name: "zeroForOne", type: "bool" },
+      { name: "amountSpecified", type: "int256" }
+    ],
+    [recipient, zeroForOne, amountSpecified]
+  )
 }

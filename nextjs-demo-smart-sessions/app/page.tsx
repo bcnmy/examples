@@ -8,8 +8,6 @@ import { useAccount } from "wagmi"
 import { useFaucet } from "./hooks/use-faucet"
 
 export default function Home() {
-  const { address, isConnected } = useAccount()
-  const { claimTokens } = useFaucet()
   const { price, priceChange, isLoading } = usePriceFeed()
   const isBullish = useMarketStore((state) => state.isBullish)
 
@@ -19,9 +17,6 @@ export default function Home() {
       priceChange={priceChange}
       isBullish={!!isBullish}
       isLoading={isLoading}
-      address={address}
-      isConnected={isConnected}
-      claimTokens={() => claimTokens(address)}
     />
   )
 }

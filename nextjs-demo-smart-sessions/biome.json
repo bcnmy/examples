@@ -30,6 +30,10 @@
       "style": {
         "noUnusedTemplateLiteral": "warn",
         "noNonNullAssertion": "off"
+      },
+      "complexity": {
+        "noStaticOnlyClass": "off",
+        "noThisInStatic": "off"
       }
     }
   },

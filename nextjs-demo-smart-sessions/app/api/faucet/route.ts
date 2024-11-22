@@ -13,7 +13,9 @@ const MOCK_WETH_ADDRESS = MockTokenWETH.address as `0x${string}`
 const MOCK_USDC_ABI = MockTokenUSDC.abi
 const MOCK_WETH_ABI = MockTokenWETH.abi
 
-const account = privateKeyToAccount(`0x${process.env.PRIVATE_KEY}` as Hex)
+const sessionKeyAccount = privateKeyToAccount(
+  `0x${process.env.PRIVATE_KEY}` as Hex
+)
 
 export async function POST(request: Request) {
   if (!process.env.PRIVATE_KEY) {
@@ -57,13 +59,13 @@ export async function POST(request: Request) {
     }
 
     const walletClient = createWalletClient({
-      account,
+      account: sessionKeyAccount,
       chain: baseSepolia,
       transport: http()
     })
 
     const nonce = await publicClient.getTransactionCount({
-      address: account.address
+      address: sessionKeyAccount.address
     })
 
     // Send mint transactions directly

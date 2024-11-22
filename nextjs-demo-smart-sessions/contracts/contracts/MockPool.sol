@@ -10,29 +10,62 @@ contract MockPool is Ownable {
     address public immutable token1;
     uint24 public immutable fee;
 
-    // Mock state variables
-    uint160 public sqrtPriceX96;
-    int24 public tick;
-    uint128 public liquidity;
-
-    // Add this state variable (adjust the value as needed)
+    // Simple price representation (e.g., 3900 * 1e6 for 3900 USDC per WETH)
     uint256 public CURRENT_PRICE_WETH_PER_USDC = 3900 * 1e6;
 
-    error TransactionDeadlinePassed();
-    error V3InvalidSwap();
-    error V3TooLittleReceived();
-    error V3TooMuchRequested();
+    // Custom errors
+    error TransactionDeadlinePassed(uint256 deadline, uint256 currentTimestamp);
+    error InvalidSwapParameters(address recipient, int256 amountSpecified);
+    error InsufficientPoolBalance(
+        address token,
+        uint256 required,
+        uint256 available
+    );
+    error InsufficientUserBalance(
+        address token,
+        address user,
+        uint256 required,
+        uint256 available
+    );
+    error InsufficientAllowance(
+        address token,
+        address user,
+        uint256 required,
+        uint256 available
+    );
+    error TransferFailed(
+        address token,
+        address from,
+        address to,
+        uint256 amount
+    );
+    error InvalidPrice(uint256 oldPrice, uint256 newPrice);
+    error MintFailed(address token, address recipient, uint256 amount);
+    error ZeroAddress();
+    error ZeroAmount();
+    error InvalidCommand(bytes command);
+    error InvalidInputLength(uint256 expected, uint256 received);
+
+    // Events for better tracking
+    event PriceUpdated(uint256 oldPrice, uint256 newPrice);
+    event SwapExecuted(
+        address indexed recipient,
+        bool zeroForOne,
+        uint256 amountIn,
+        uint256 amountOut
+    );
+    event PoolTokensMinted(uint256 wethAmount, uint256 usdcAmount);
 
     constructor(
         address _token0,
         address _token1,
-        uint24 _fee,
-        uint160 _initialSqrtPriceX96
+        uint24 _fee
     ) Ownable(msg.sender) {
+        if (_token0 == address(0) || _token1 == address(0))
+            revert ZeroAddress();
         token0 = _token0;
         token1 = _token1;
         fee = _fee;
-        sqrtPriceX96 = _initialSqrtPriceX96;
     }
 
     function execute(
@@ -40,100 +73,211 @@ contract MockPool is Ownable {
         bytes[] calldata inputs,
         uint256 deadline
     ) external payable returns (int256 amount0, int256 amount1) {
-        if (block.timestamp > deadline) revert TransactionDeadlinePassed();
+        if (block.timestamp > deadline) {
+            revert TransactionDeadlinePassed(deadline, block.timestamp);
+        }
 
-        // Decode the first command (assuming it's a swap)
-        if (commands.length == 0) revert V3InvalidSwap();
+        // Check command length
+        if (commands.length != 1) {
+            revert InvalidCommand(commands);
+        }
 
-        // Mock implementation - decode inputs assuming first input contains swap params
-        (
-            address recipient,
-            bool zeroForOne,
-            int256 amountSpecified,
-            uint160 sqrtPriceLimitX96
-        ) = abi.decode(inputs[0], (address, bool, int256, uint160));
+        // Check inputs length
+        if (inputs.length != 1) {
+            revert InvalidInputLength(1, inputs.length);
+        }
 
-        // Perform the swap
-        return _swap(recipient, zeroForOne, amountSpecified, sqrtPriceLimitX96);
+        // Get the command byte
+        uint8 command = uint8(commands[0]);
+
+        // Command 0x00 or 0x01 for swap
+        if (command != 0x00 && command != 0x01) {
+            revert InvalidCommand(commands);
+        }
+
+        // Decode swap parameters
+        (address recipient, bool zeroForOne, int256 amountSpecified) = abi
+            .decode(inputs[0], (address, bool, int256));
+
+        if (recipient == address(0)) revert ZeroAddress();
+        if (amountSpecified == 0) revert ZeroAmount();
+
+        return _swap(recipient, zeroForOne, amountSpecified);
     }
 
     function _swap(
         address recipient,
         bool zeroForOne,
-        int256 amountSpecified,
-        uint160 sqrtPriceLimitX96
+        int256 amountSpecified
     ) internal returns (int256 amount0, int256 amount1) {
-        if (amountSpecified == 0) revert V3InvalidSwap();
-
         uint256 amount = uint256(
             amountSpecified > 0 ? amountSpecified : -amountSpecified
         );
 
         if (zeroForOne) {
-            // WETH -> USDC: multiply by price and adjust decimals
+            // WETH -> USDC
             uint256 usdcAmount = (amount * CURRENT_PRICE_WETH_PER_USDC) / 1e18;
 
-            require(
-                IERC20(token0).transferFrom(msg.sender, address(this), amount),
-                "T0F"
+            // Check WETH allowance
+            uint256 wethAllowance = IERC20(token0).allowance(
+                msg.sender,
+                address(this)
             );
-            require(IERC20(token1).transfer(recipient, usdcAmount), "T1F");
+            if (wethAllowance < amount) {
+                revert InsufficientAllowance(
+                    token0,
+                    msg.sender,
+                    amount,
+                    wethAllowance
+                );
+            }
+
+            // Check WETH balance
+            uint256 wethBalance = IERC20(token0).balanceOf(msg.sender);
+            if (wethBalance < amount) {
+                revert InsufficientUserBalance(
+                    token0,
+                    msg.sender,
+                    amount,
+                    wethBalance
+                );
+            }
+
+            // Check pool's USDC balance
+            uint256 poolUsdcBalance = IERC20(token1).balanceOf(address(this));
+            if (poolUsdcBalance < usdcAmount) {
+                revert InsufficientPoolBalance(
+                    token1,
+                    usdcAmount,
+                    poolUsdcBalance
+                );
+            }
+
+            // Execute transfers
+            bool success = IERC20(token0).transferFrom(
+                msg.sender,
+                address(this),
+                amount
+            );
+            if (!success) {
+                revert TransferFailed(
+                    token0,
+                    msg.sender,
+                    address(this),
+                    amount
+                );
+            }
+
+            success = IERC20(token1).transfer(recipient, usdcAmount);
+            if (!success) {
+                revert TransferFailed(
+                    token1,
+                    address(this),
+                    recipient,
+                    usdcAmount
+                );
+            }
+
+            emit SwapExecuted(recipient, zeroForOne, amount, usdcAmount);
             return (int256(amount), -int256(usdcAmount));
         } else {
-            // USDC -> WETH: divide by price and adjust decimals
+            // USDC -> WETH
             uint256 wethAmount = (amount * 1e18) / CURRENT_PRICE_WETH_PER_USDC;
 
-            require(
-                IERC20(token1).transferFrom(msg.sender, address(this), amount),
-                "T1F"
+            // Check USDC allowance
+            uint256 usdcAllowance = IERC20(token1).allowance(
+                msg.sender,
+                address(this)
             );
-            require(IERC20(token0).transfer(recipient, wethAmount), "T0F");
+            if (usdcAllowance < amount) {
+                revert InsufficientAllowance(
+                    token1,
+                    msg.sender,
+                    amount,
+                    usdcAllowance
+                );
+            }
+
+            // Check USDC balance
+            uint256 usdcBalance = IERC20(token1).balanceOf(msg.sender);
+            if (usdcBalance < amount) {
+                revert InsufficientUserBalance(
+                    token1,
+                    msg.sender,
+                    amount,
+                    usdcBalance
+                );
+            }
+
+            // Check pool's WETH balance
+            uint256 poolWethBalance = IERC20(token0).balanceOf(address(this));
+            if (poolWethBalance < wethAmount) {
+                revert InsufficientPoolBalance(
+                    token0,
+                    wethAmount,
+                    poolWethBalance
+                );
+            }
+
+            // Execute transfers
+            bool success = IERC20(token1).transferFrom(
+                msg.sender,
+                address(this),
+                amount
+            );
+            if (!success) {
+                revert TransferFailed(
+                    token1,
+                    msg.sender,
+                    address(this),
+                    amount
+                );
+            }
+
+            success = IERC20(token0).transfer(recipient, wethAmount);
+            if (!success) {
+                revert TransferFailed(
+                    token0,
+                    address(this),
+                    recipient,
+                    wethAmount
+                );
+            }
+
+            emit SwapExecuted(recipient, zeroForOne, amount, wethAmount);
             return (-int256(wethAmount), int256(amount));
         }
     }
 
-    function slot0()
-        external
-        view
-        returns (
-            uint160 sqrtPriceX96_,
-            int24 tick_,
-            uint16 observationIndex,
-            uint16 observationCardinality,
-            uint16 observationCardinalityNext,
-            uint8 feeProtocol,
-            bool unlocked
-        )
-    {
-        return (sqrtPriceX96, tick, 0, 0, 0, 0, true);
-    }
-
-    // Mock functions to set state
-    function setPrice(uint160 _sqrtPriceX96, int24 _tick) external {
-        sqrtPriceX96 = _sqrtPriceX96;
-        tick = _tick;
-    }
-
-    function setLiquidity(uint128 _liquidity) external {
-        liquidity = _liquidity;
-    }
-
     function setCurrentPrice(uint256 newPrice) external onlyOwner {
+        if (newPrice == 0) revert ZeroAmount();
+        uint256 oldPrice = CURRENT_PRICE_WETH_PER_USDC;
         CURRENT_PRICE_WETH_PER_USDC = newPrice;
+        emit PriceUpdated(oldPrice, newPrice);
     }
 
-    // Function to directly mint tokens to the pool for testing
     function mintPoolTokens(
         uint256 wethAmount,
         uint256 usdcAmount
     ) external onlyOwner {
-        require(
-            IERC20Mintable(token0).mint(address(this), wethAmount),
-            "WETH mint failed"
-        );
-        require(
-            IERC20Mintable(token1).mint(address(this), usdcAmount),
-            "USDC mint failed"
-        );
+        if (wethAmount == 0 && usdcAmount == 0) revert ZeroAmount();
+
+        if (wethAmount > 0) {
+            bool success = IERC20Mintable(token0).mint(
+                address(this),
+                wethAmount
+            );
+            if (!success) revert MintFailed(token0, address(this), wethAmount);
+        }
+
+        if (usdcAmount > 0) {
+            bool success = IERC20Mintable(token1).mint(
+                address(this),
+                usdcAmount
+            );
+            if (!success) revert MintFailed(token1, address(this), usdcAmount);
+        }
+
+        emit PoolTokensMinted(wethAmount, usdcAmount);
     }
 }

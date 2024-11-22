@@ -1,20 +1,24 @@
-import React, { useRef } from "react"
+import React from "react"
 import { Card, CardContent } from "@/app/components/ui/card"
 import Chart from "@/app/components/ui/Chart"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { TradingTray } from "@/app/components/ui/TradingTray"
 import { useEffect, useState } from "react"
 import type { Address } from "viem/accounts"
-import { useBalances } from "@/app/hooks/use-balances"
-import { useToast } from "@/app/hooks/use-toast"
+import { Button } from "@/app/components/ui/button"
+import { CustomConnectButton } from "./ConnectButton"
+import { useMarketStore } from "@/app/stores/marketStore"
+import { useAccount } from "wagmi"
+import { DemoBanner } from "./DemoBanner"
+import { HowItWorksDialog } from "./HowItWorks"
+import { useAutoTrade } from "@/app/hooks/use-auto-trade"
+import { AccountLink } from "./AccountLink"
 
 interface MarketInterfaceProps {
   price: string
   priceChange: string
   isBullish: boolean
   isLoading: boolean
-  isConnected: boolean
-  claimTokens: (address: Address) => void
   address?: Address
 }
 
@@ -22,61 +26,20 @@ export function MarketInterface({
   price,
   priceChange,
   isBullish,
-  isLoading,
-  isConnected,
-  address,
-  claimTokens,
+  isLoading
 }: MarketInterfaceProps) {
-
-  const balances = useBalances()
-  const { toast } = useToast()
-
   const [isTrayOpen, setIsTrayOpen] = useState(false)
-  const [tradeAmount, setTradeAmount] = useState("0")
   const [animationClass, setAnimationClass] = useState("")
-  const hasClaimedRef = useRef(false)
-  const hasShownBannerRef = useRef(false)
+  const { initializeNexusClient } = useMarketStore()
+  const { address, isConnected, chain } = useAccount()
 
-  const handleTrade = () => {
-    console.log("Trade initiated with amount:", tradeAmount)
-  }
+  useAutoTrade()
 
-  // Add this effect to handle automatic claiming when wallet connects
-  // Add a ref to track if we've already claimed
   useEffect(() => {
-    // Check if we've shown the banner before in this browser
-    const hasShownBefore = localStorage.getItem('hasShownWelcomeBanner')
-    
-    if (!isConnected) {
-      hasClaimedRef.current = false
-      return
+    if (address && chain && isConnected && initializeNexusClient) {
+      initializeNexusClient(address, chain)
     }
-
-    // Only show toast if:
-    // 1. User is connected
-    // 2. Haven't shown banner before in this session
-    // 3. Haven't shown banner before in this browser
-    // 4. User has zero balance (indicating they're new)
-    if (
-      address && 
-      claimTokens && 
-      !hasClaimedRef.current && 
-      !hasShownBannerRef.current && 
-      !hasShownBefore &&
-      balances.hasZeroBalance 
-    ) {
-      hasClaimedRef.current = true
-      hasShownBannerRef.current = true
-      localStorage.setItem('hasShownWelcomeBanner', 'true')
-      claimTokens(address)
-      
-      toast({
-        variant: "default",
-        title: "Welcome!",
-        description: "We're sending you some test tokens to get started. You'll receive 10 USDC and 0.003 ETH to try out the platform."
-      })
-    }
-  }, [isConnected, address, claimTokens, balances.hasZeroBalance, toast])
+  }, [address, chain, initializeNexusClient, isConnected])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
@@ -106,27 +69,36 @@ export function MarketInterface({
         ${
           isBullish
             ? "before:from-emerald-500/10 before:to-transparent"
-            : "before:from-red-500/10 before:to-transparent"
+            : "before:from-bearish/10 before:to-transparent"
         }
         ${animationClass}
       `}
     >
+      <DemoBanner />
       <div className="container mx-auto px-4 py-8">
         <Card className="border-none">
           <CardContent className="p-6">
             <div className="space-y-6">
               <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-white">ETH/USDC</h1>
+                <div className="flex items-center gap-4">
+                  <h1 className="text-2xl font-bold text-white">WETH/USDC</h1>
+                  <HowItWorksDialog />
+                </div>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-4 mr-4">
-                    {isConnected ? <ConnectButton /> : null}
+                    {isConnected ? (
+                      <>
+                        <ConnectButton />
+                        <AccountLink />
+                      </>
+                    ) : null}
                   </div>
                   <div className="relative z-20">
                     <div className="text-right">
                       <p className="text-2xl font-bold text-white">${price}</p>
                       <p
                         className={`text-sm font-medium ${
-                          isBullish ? "text-emerald-500" : "text-red-500"
+                          isBullish ? "text-emerald-500" : "text-bearish"
                         }`}
                       >
                         {priceChange}%
@@ -144,7 +116,7 @@ export function MarketInterface({
                   ${
                     isBullish
                       ? "before:from-emerald-500/20 before:to-transparent"
-                      : "before:from-red-500/20 before:to-transparent"
+                      : "before:from-bearish/20 before:to-transparent"
                   }
                   ${animationClass}
                 `}
@@ -160,59 +132,36 @@ export function MarketInterface({
                 <div className="p-4 rounded-lg ">
                   <div className="relative">
                     {isConnected ? (
-                      <button
-                        type="button"
+                      <Button
                         onClick={() => setIsTrayOpen(!isTrayOpen)}
-                        className={`w-full h-full flex flex-col items-center justify-center p-4 rounded-lg 
-                            transform transition-all duration-500 hover:scale-110 hover:rotate-1
-                            ${
-                              isBullish
-                                ? "bg-emerald-500/80 hover:bg-emerald-400/90 hover:shadow-lg hover:shadow-emerald-500/50"
-                                : "bg-red-500/80 hover:bg-red-400/90 hover:shadow-lg hover:shadow-red-500/50"
-                            } text-white font-bold
-                            ${animationClass}`}
+                        variant={isBullish ? "bullish" : "bearish"}
+                        className="w-full h-full transform transition-all duration-500 
+                          hover:scale-110 hover:rotate-1 hover:shadow-lg
+                          hover:shadow-current"
                       >
-                        <span className="text-lg mb-1">Auto Trade</span>
-                      </button>
+                        <span className="text-lg">Auto Trade</span>
+                      </Button>
                     ) : (
-                      <ConnectButton.Custom>
-                        {({ openConnectModal }) => (
-                          <button
-                            type="button"
-                            onClick={openConnectModal}
-                            className={`w-full h-full flex flex-col items-center justify-center p-4 rounded-lg 
-                                transform transition-all duration-500 hover:scale-110
-                                ${
-                                  isBullish
-                                    ? "bg-emerald-500/80 hover:bg-emerald-400/90 hover:shadow-lg hover:shadow-emerald-500/50"
-                                    : "bg-red-500/80 hover:bg-red-400/90 hover:shadow-lg hover:shadow-red-500/50"
-                                } text-white font-bold`}
-                          >
-                            <span className="text-lg mb-1">Connect Wallet</span>
-                          </button>
-                        )}
-                      </ConnectButton.Custom>
+                      <CustomConnectButton />
                     )}
 
                     <TradingTray
                       isTrayOpen={isTrayOpen}
+                      onTrayOpenChange={setIsTrayOpen}
                       isBullish={isBullish ?? false}
-                      tradeAmount={tradeAmount.toString()}
-                      onTradeAmountChange={setTradeAmount}
-                      onTrade={handleTrade}
-                      balances={balances}
-                      onMaxClick={() => setTradeAmount("0.01")}
                     />
                   </div>
                 </div>
-                <div className="p-4 rounded-lg  text-right">
+                <div className="p-4 rounded-lg text-right">
                   <p className="text-sm text-white/60">Market State</p>
-                  <p
-                    className={`text-xl font-semibold transform transition-all duration-500
-                      ${isBullish ? "text-emerald-500" : "text-red-500"}`}
-                  >
-                    {isBullish ? "BULLISH" : "BEARISH"}
-                  </p>
+                  <div className="flex items-center justify-end gap-2">
+                    <p
+                      className={`text-xl font-semibold transform transition-all duration-500
+                        ${isBullish ? "text-emerald-500" : "text-bearish"}`}
+                    >
+                      {isBullish ? "BULLISH" : "BEARISH"}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

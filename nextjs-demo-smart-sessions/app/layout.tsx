@@ -39,7 +39,7 @@ export default function RootLayout({
     ? 'bg-slate-900'
     : isBullish 
     ? 'bg-green-950' 
-    : 'bg-red-950';
+    : 'bg-bearish-dark';
 
   return (
     <html lang="en">

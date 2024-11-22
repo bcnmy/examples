@@ -5,7 +5,7 @@ import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
 import { X } from "lucide-react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/app/lib/utils"
 
 const ToastProvider = ToastPrimitives.Provider
 
@@ -30,7 +30,7 @@ const toastVariants = cva(
     variants: {
       variant: {
         default: "bg-green-500/10 text-green-500 border border-green-500/20 shadow-green-500/10",
-        destructive: "bg-red-500/10 text-red-500 border border-red-500/20 shadow-red-500/10",
+        destructive: "bg-bearish/10 text-bearish border border-bearish/20 shadow-bearish/10",
         info: "bg-blue-500/10 text-blue-500 border border-blue-500/20 shadow-blue-500/10",
       },
     },
@@ -77,7 +77,7 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      "absolute right-1 top-1 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-1 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600",
+      "absolute right-1 top-1 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-1 group-hover:opacity-100 group-[.destructive]:text-bearish group-[.destructive]:hover:text-bearish-light group-[.destructive]:focus:ring-bearish-light group-[.destructive]:focus:ring-offset-bearish",
       className
     )}
     toast-close=""
