@@ -1,112 +1,151 @@
-import { useEffect, useRef } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import { useMarketStore } from "@/app/stores/marketStore"
 import { useToast } from "@/app/hooks/use-toast"
-import { MOCK_USDC_ADDRESS, MOCK_WETH_ADDRESS } from "@/app/lib/constants"
-import { useBalance } from "wagmi"
 import { stringify } from "@biconomy/sdk"
 import { TradeToast } from "@/app/components/ui/TradeToast"
 import { useAssetBalances } from "./use-asset-balances"
 
+export type TradeState = {
+  status: "idle" | "preparing" | "trading" | "submitted" | "confirmed" | "error"
+  isBullish: boolean | null
+  error?: string
+  userOpHash?: string
+  transactionHash?: string
+  amount?: string
+  price?: string
+}
+
 export function useAutoTrade() {
-  const { nexusClient, nexusAddress, isBullish } = useMarketStore()
+  const {
+    nexusClient,
+    nexusAddress,
+    isBullish,
+    addTrade,
+    updateTrade,
+    linkUserOpToTx,
+    tracking
+  } = useMarketStore()
 
   const sessionData = localStorage.getItem(`session_${nexusAddress}`)
-
   const assetBalances = useAssetBalances(nexusAddress)
-
-  console.log({ assetBalances })
-
   const { toast } = useToast()
-
   const prevIsBullishRef = useRef(isBullish)
+  const currentTradeIdRef = useRef<string | null>(null)
+  const isExecutingRef = useRef(false)
 
-  useEffect(() => {
-    // Only proceed if isBullish has changed
-    if (prevIsBullishRef.current === isBullish) {
+  const executeTrade = useCallback(async () => {
+    // Prevent concurrent executions
+    if (isExecutingRef.current || !sessionData || !nexusClient || !nexusAddress) {
       return
     }
 
-    // Don't execute if we don't have the required data
-    if (!sessionData || !nexusClient || !nexusAddress) {
-      return
-    }
+    try {
+      isExecutingRef.current = true
 
-    // Update the ref
-    prevIsBullishRef.current = isBullish
+      // Create initial trade record
+      const amount = isBullish
+        ? assetBalances.usdcBalance.toString()
+        : assetBalances.wethBalance.toString()
 
-    const executeTrade = async () => {
-      console.log(`Executing trade... ${isBullish ? "buy" : "sell"}`)
+      currentTradeIdRef.current = addTrade({
+        isBullish,
+        status: "preparing",
+        amount
+      })
 
-      try {
-        // Don't trade if no balance for direction
-        if (isBullish && assetBalances.usdcBalance <= 0n)
-          throw new Error("No USDC balance")
-        if (!isBullish && assetBalances.wethBalance <= 0n)
-          throw new Error("No WETH balance")
+      // Update to trading status
+      updateTrade(currentTradeIdRef.current, { status: "trading" })
 
-        const response = await fetch("/api/trade", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: stringify({
-            userAddress: nexusAddress,
-            isBullish,
-            amount: isBullish
-              ? assetBalances.usdcBalance
-              : assetBalances.wethBalance,
-            sessionData
-          })
+      const response = await fetch("/api/trade", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: stringify({
+          userAddress: nexusAddress,
+          isBullish,
+          amount: isBullish
+            ? assetBalances.usdcBalance
+            : assetBalances.wethBalance,
+          sessionData
         })
+      })
 
-        const responseData = await response.json()
+      const responseData = await response.json()
 
-        if (!response.ok) {
-          throw new Error(
-            responseData.details || responseData.error || "Trade failed",
-            {
-              cause: responseData
-            }
-          )
-        }
+      if (!response.ok) {
+        throw new Error(
+          responseData.details || responseData.error || "Trade failed",
+          { cause: responseData }
+        )
+      }
 
-        toast({
-          title: "Trade Executed",
-          description: TradeToast({
-            isBullish,
-            userOpHash: responseData.userOpHash,
-            transactionHash: responseData.transactionHash
-          }),
-          duration: 5000
-        })
-      } catch (error) {
-        console.error("Trade failed:", error)
+      // Update trade with userOpHash and status
+      updateTrade(currentTradeIdRef.current, {
+        status: "submitted",
+        userOpHash: responseData.userOpHash
+      })
 
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error occurred"
+      // Link userOp to transaction if available
+      if (responseData.transactionHash) {
+        linkUserOpToTx(responseData.userOpHash, responseData.transactionHash)
+      }
 
-        const errorCause =
-          error instanceof Error && error.cause
-            ? (error.cause as { userOpHash?: string; transactionHash?: string })
-            : undefined
+      // Wait for transaction receipt
+      const receipt = await nexusClient.waitForTransactionReceipt({
+        hash: responseData.transactionHash
+      })
 
-        toast({
-          title: "Trade Failed",
-          description: TradeToast({
-            isBullish,
-            userOpHash: errorCause?.userOpHash,
-            transactionHash: errorCause?.transactionHash,
-            error: true,
-            errorMessage
-          }),
-          variant: "destructive",
-          duration: 7000
+      // Update final status
+      updateTrade(currentTradeIdRef.current, {
+        status: "confirmed",
+        transactionHash: receipt.transactionHash
+      })
+
+      toast({
+        title: "Trade Executed",
+        description: TradeToast({
+          isBullish,
+          userOpHash: responseData.userOpHash,
+          transactionHash: responseData.transactionHash
+        }),
+        duration: 5000
+      })
+    } catch (error) {
+      console.error("Trade failed:", error)
+
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred"
+
+      const errorCause =
+        error instanceof Error && error.cause
+          ? (error.cause as { userOpHash?: string; transactionHash?: string })
+          : undefined
+
+      if (currentTradeIdRef.current) {
+        updateTrade(currentTradeIdRef.current, {
+          status: "error",
+          error: errorMessage,
+          userOpHash: errorCause?.userOpHash,
+          transactionHash: errorCause?.transactionHash
         })
       }
-    }
 
-    // Execute trade when isBullish changes
-    executeTrade()
+      toast({
+        title: "Trade Failed",
+        description: TradeToast({
+          isBullish,
+          userOpHash: errorCause?.userOpHash,
+          transactionHash: errorCause?.transactionHash,
+          error: true,
+          errorMessage
+        }),
+        variant: "destructive",
+        duration: 7000
+      })
+    } finally {
+      isExecutingRef.current = false
+    }
   }, [
     nexusClient,
     nexusAddress,
@@ -114,6 +153,34 @@ export function useAutoTrade() {
     isBullish,
     assetBalances.wethBalance,
     assetBalances.usdcBalance,
-    toast
+    toast,
+    addTrade,
+    updateTrade,
+    linkUserOpToTx
   ])
+
+  useEffect(() => {
+    // Skip if same direction or already executing
+    if (prevIsBullishRef.current === isBullish || isExecutingRef.current) {
+      return
+    }
+
+    // Debounce the execution slightly to prevent double triggers
+    const timeoutId = setTimeout(() => {
+      prevIsBullishRef.current = isBullish
+      executeTrade()
+    }, 100)
+
+    return () => {
+      clearTimeout(timeoutId)
+    }
+  }, [isBullish, executeTrade])
+
+  return {
+    currentTrade: currentTradeIdRef.current
+      ? tracking.trades.find((t) => t.id === currentTradeIdRef.current)
+      : null,
+    trades: tracking.trades,
+    pendingTrades: Array.from(tracking?.pendingTrades?.values() ?? [])
+  }
 }

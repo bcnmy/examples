@@ -17,7 +17,6 @@ import { time } from "@nomicfoundation/hardhat-network-helpers"
 import { expect } from "chai"
 import chaiAsPromised from "chai-as-promised"
 import chai from "chai"
-import { POOL_FEE } from "../constants"
 chai.use(chaiAsPromised)
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -65,10 +64,6 @@ describe("MockPool", () => {
       expect((await pool.read.token1()).toLowerCase()).to.equal(
         usdc.address.toLowerCase()
       )
-    })
-
-    it("Should set the correct fee", async () => {
-      expect(await pool.read.fee()).to.equal(POOL_FEE)
     })
   })
 

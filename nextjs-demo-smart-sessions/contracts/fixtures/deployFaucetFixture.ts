@@ -11,7 +11,6 @@ import type {
   MockToken__factory,
   MockPool__factory
 } from "../typechain-types/factories/contracts"
-import { POOL_FEE } from "../constants"
 
 type DeployFaucetFixture = {
   faucet: GetContractReturnType<typeof Faucet__factory.abi>
@@ -85,8 +84,7 @@ export async function deployFaucetFixture(): Promise<DeployFaucetFixture> {
   // Deploy MockPool
   const poolContract = await deployContract("MockPool", [
     weth.address,
-    usdc.address,
-    POOL_FEE
+    usdc.address
   ])
   const pool = await viem.getContractAt("MockPool", poolContract.address)
 

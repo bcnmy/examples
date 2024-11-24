@@ -87,7 +87,7 @@ export function useGrantPermissions() {
       // Define permissions for execute function
       const sessionRequestedInfo = [
         {
-          sessionPublicKey,
+          sessionKeyData: sessionPublicKey as Hex,
           actionPoliciesInfo: [
             {
               contractAddress: MOCK_POOL_ADDRESS,
@@ -96,7 +96,7 @@ export function useGrantPermissions() {
           ]
         },
         {
-          sessionPublicKey,
+          sessionKeyData: sessionPublicKey as Hex,
           actionPoliciesInfo: [
             {
               contractAddress: MOCK_WETH_ADDRESS,
@@ -105,7 +105,7 @@ export function useGrantPermissions() {
           ]
         },
         {
-          sessionPublicKey,
+          sessionKeyData: sessionPublicKey as Hex,
           actionPoliciesInfo: [
             {
               contractAddress: MOCK_USDC_ADDRESS,
