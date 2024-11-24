@@ -17,6 +17,9 @@ const sessionKeyAccount = privateKeyToAccount(
   `0x${process.env.PRIVATE_KEY}` as Hex
 )
 
+export const amountUSDC = 5n * 10n ** 6n
+export const amountWETH = 1n * 10n ** 15n
+
 export async function POST(request: Request) {
   if (!process.env.PRIVATE_KEY) {
     return NextResponse.json(
@@ -73,14 +76,14 @@ export async function POST(request: Request) {
       address: MOCK_USDC_ADDRESS,
       abi: MOCK_USDC_ABI,
       functionName: "mint",
-      args: [userAddress, 5n * 10n ** 6n],
+      args: [userAddress, amountUSDC],
       nonce
     })
     const hash2 = await walletClient.writeContract({
       address: MOCK_WETH_ADDRESS,
       abi: MOCK_WETH_ABI,
       functionName: "mint",
-      args: [userAddress, 1n * 10n ** 15n],
+      args: [userAddress, amountWETH],
       nonce: nonce + 1
     })
 

@@ -8,7 +8,6 @@ import "./interfaces/IERC20Mintable.sol";
 contract MockPool is Ownable {
     address public immutable token0;
     address public immutable token1;
-    uint24 public immutable fee;
 
     // Simple price representation (e.g., 3900 * 1e6 for 3900 USDC per WETH)
     uint256 public CURRENT_PRICE_WETH_PER_USDC = 3900 * 1e6;
@@ -56,16 +55,11 @@ contract MockPool is Ownable {
     );
     event PoolTokensMinted(uint256 wethAmount, uint256 usdcAmount);
 
-    constructor(
-        address _token0,
-        address _token1,
-        uint24 _fee
-    ) Ownable(msg.sender) {
+    constructor(address _token0, address _token1) Ownable(msg.sender) {
         if (_token0 == address(0) || _token1 == address(0))
             revert ZeroAddress();
         token0 = _token0;
         token1 = _token1;
-        fee = _fee;
     }
 
     function execute(

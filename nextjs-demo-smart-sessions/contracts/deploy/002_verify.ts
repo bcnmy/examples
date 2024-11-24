@@ -1,6 +1,5 @@
 import type { HardhatRuntimeEnvironment } from "hardhat/types"
 import type { DeployFunction } from "hardhat-deploy/types"
-import { POOL_FEE } from "../constants"
 
 const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
   const { deployments, network } = hre
@@ -32,7 +31,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     console.log("Verifying Pool...")
     await hre.run("verify:verify", {
       address: pool.address,
-      constructorArguments: [weth.address, usdc.address, POOL_FEE]
+      constructorArguments: [weth.address, usdc.address]
     })
 
     console.log("Verifying Faucet...")

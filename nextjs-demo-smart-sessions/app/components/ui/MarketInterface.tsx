@@ -13,6 +13,9 @@ import { DemoBanner } from "./DemoBanner"
 import { HowItWorksDialog } from "./HowItWorks"
 import { useAutoTrade } from "@/app/hooks/use-auto-trade"
 import { AccountLink } from "./AccountLink"
+import { TradeHistory } from "./TradeHistory"
+import { StatusBadge } from "./StatusBadge"
+import { ActiveTrader } from "./ActiveTrader"
 
 interface MarketInterfaceProps {
   price: string
@@ -33,7 +36,7 @@ export function MarketInterface({
   const { initializeNexusClient } = useMarketStore()
   const { address, isConnected, chain } = useAccount()
 
-  useAutoTrade()
+  const tradeState = useAutoTrade()
 
   useEffect(() => {
     if (address && chain && isConnected && initializeNexusClient) {
@@ -75,6 +78,7 @@ export function MarketInterface({
       `}
     >
       <DemoBanner />
+      <ActiveTrader currentTrade={tradeState.currentTrade ?? null} />
       <div className="container mx-auto px-4 py-8">
         <Card className="border-none">
           <CardContent className="p-6">

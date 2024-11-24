@@ -1,7 +1,7 @@
 import type { HardhatRuntimeEnvironment } from "hardhat/types"
 import type { DeployFunction } from "hardhat-deploy/types"
 import { parseEther, parseUnits, maxUint256 } from "viem"
-import { INITIAL_PRICE_WETH_PER_USDC, POOL_FEE } from "../constants"
+import { INITIAL_PRICE_WETH_PER_USDC } from "../constants"
 
 /**
  * This script deploys a mock Uniswap V3-style environment with:
@@ -60,7 +60,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 
   const pool = await deploy("MockPool", {
     from: deployer,
-    args: [weth.address, usdc.address, POOL_FEE],
+    args: [weth.address, usdc.address],
     log: true,
     waitConfirmations: network.live ? 5 : 1
   })
