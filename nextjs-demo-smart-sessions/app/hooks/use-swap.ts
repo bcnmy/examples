@@ -4,10 +4,15 @@ import {
   encodeFunctionData,
   type Hex,
   type LocalAccount,
-  encodeAbiParameters
+  encodeAbiParameters,
+  erc20Abi
 } from "viem"
 import { baseSepolia } from "viem/chains"
-import { MOCK_POOL_ABI, MOCK_POOL_ADDRESS } from "@/app/lib/constants"
+import {
+  MOCK_POOL_ABI,
+  MOCK_POOL_ADDRESS,
+  MOCK_USDC_ADDRESS
+} from "@/app/lib/constants"
 import {
   createNexusClient,
   toSmartSessionsValidator,
@@ -84,9 +89,18 @@ export function useSwap({
       )
 
       const args = [commands, inputs, deadline]
+      const maxApproval = 2n ** 256n - 1n
 
       const userOpHash = await executeClient.usePermission({
         calls: [
+          {
+            to: MOCK_USDC_ADDRESS,
+            data: encodeFunctionData({
+              abi: erc20Abi,
+              functionName: "approve",
+              args: [MOCK_POOL_ADDRESS, maxApproval]
+            })
+          },
           {
             to: MOCK_POOL_ADDRESS,
             data: encodeFunctionData({

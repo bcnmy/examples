@@ -8,21 +8,23 @@ import { useAccount } from "wagmi"
 import { useMarketStore } from "@/app/stores/marketStore"
 import { AccountLink } from "./AccountLink"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
-import { useAllowance } from "@/app/hooks/use-allowance"
-import { useApproveToken } from "@/app/hooks/use-approve-token"
 import { privateKeyToAccount } from "viem/accounts"
 import type { Hex } from "viem"
 import type { SessionData } from "@biconomy/sdk"
 import { useSwap } from "@/app/hooks/use-swap"
 import { TaskDialog } from "./TaskDialog"
+import { SuccessDialog } from "./SuccessDialog"
+import { baseSepolia } from "viem/chains"
+
 export default function DemoInterface() {
   useAutoClaim()
 
   const { initializeNexusClient, nexusAddress } = useMarketStore()
   const { address, isConnected, chain } = useAccount()
-  const { allowances } = useAllowance(nexusAddress as Hex)
   const [permissionId, setPermissionId] = useState<Hex | undefined>()
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
+  const [successTxHash, setSuccessTxHash] = useState<string>("")
 
   const sessionKeyAccount = privateKeyToAccount(
     `0x${process.env.NEXT_PUBLIC_PRIVATE_KEY}`
@@ -34,17 +36,6 @@ export default function DemoInterface() {
       permissionIds: [permissionId!]
     }
   }
-
-  const {
-    approve,
-    isLoading: isApproving,
-    error: approveError
-  } = useApproveToken({
-    nexusAddress,
-    sessionData,
-    sessionKeyAccount,
-    permissionIdIndex: 0
-  })
 
   const {
     swap,
@@ -91,11 +82,27 @@ export default function DemoInterface() {
 
   const EXPLORER_URL = "https://sepolia.basescan.org"
 
+  const handleSwap = async () => {
+    try {
+      const hash = await swap()
+      setSuccessTxHash(hash)
+      setShowSuccess(true)
+    } catch (error) {
+      console.error("Swap failed:", error)
+    }
+  }
+
   return (
     <div className="fixed inset-0 flex items-center justify-center flex-col gap-4">
       <TaskDialog
         isOpen={isTaskDialogOpen}
         onClose={() => setIsTaskDialogOpen(false)}
+      />
+
+      <SuccessDialog
+        isOpen={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        txHash={successTxHash}
       />
 
       <Button
@@ -111,12 +118,16 @@ export default function DemoInterface() {
         <AccountLink />
       </div>
 
-      <Card className="bg-white p-2">
-        <div className="text-xs text-gray-600 space-y-1">
-          <h2 className="text-sm font-medium text-gray-600 w-full">
+      <Card className="bg-white p-2 w-[400px]">
+        <div className="text-xs text-gray-600 space-y-1 p-4">
+          <h2 className="text-sm font-medium text-gray-600 w-full py-2">
             Information
           </h2>
           <div className="flex items-center gap-2">
+            <span>Chain ID: {baseSepolia.id.toString()}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span>Paymaster URL</span>
             {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
             <code
               className="bg-gray-100 p-1 rounded cursor-pointer hover:bg-gray-200 flex items-center gap-2"
@@ -126,7 +137,7 @@ export default function DemoInterface() {
                 )
               }
             >
-              https://paymaster.biconomy.io/....ad5 <Copy className="h-4 w-4" />
+              https://paymaster...ad5 <Copy className="h-4 w-4" />
             </code>
           </div>
           <div className="flex items-center gap-2">
@@ -153,46 +164,50 @@ export default function DemoInterface() {
           </div>
           <div className="flex items-center gap-2">
             <span>Mock Pool:</span>
-            {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
-            <code
-              className="bg-gray-100 p-1 rounded cursor-pointer hover:bg-gray-200 flex items-center gap-2"
-              onClick={() => copyToClipboard(MOCK_POOL_ADDRESS)}
-            >
-              {`${MOCK_POOL_ADDRESS.slice(0, 6)}...${MOCK_POOL_ADDRESS.slice(-4)}`}
-              <Copy className="h-4 w-4" />
-            </code>
-            <a
-              href={`${EXPLORER_URL}/address/${MOCK_POOL_ADDRESS}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-500 hover:text-blue-600"
-            >
-              <ExternalLink className="h-4 w-4" />
-            </a>
+            <div className="flex items-center gap-1">
+              {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+              <code
+                className="bg-gray-100 p-1 rounded cursor-pointer hover:bg-gray-200 flex items-center gap-2"
+                onClick={() => copyToClipboard(MOCK_POOL_ADDRESS)}
+              >
+                {`${MOCK_POOL_ADDRESS.slice(0, 6)}...${MOCK_POOL_ADDRESS.slice(-4)}`}{" "}
+                <Copy className="h-4 w-4" />
+              </code>
+              <a
+                href={`${EXPLORER_URL}/address/${MOCK_POOL_ADDRESS}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:text-blue-600"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <span>Mock USDC:</span>
-            {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
-            <code
-              className="bg-gray-100 p-1 rounded cursor-pointer hover:bg-gray-200 flex items-center gap-2"
-              onClick={() => copyToClipboard(MOCK_USDC_ADDRESS)}
-            >
-              {`${MOCK_USDC_ADDRESS.slice(0, 6)}...${MOCK_USDC_ADDRESS.slice(-4)}`}
-              <Copy className="h-4 w-4" />
-            </code>
-            <a
-              href={`${EXPLORER_URL}/address/${MOCK_USDC_ADDRESS}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-500 hover:text-blue-600"
-            >
-              <ExternalLink className="h-4 w-4" />
-            </a>
+            <div className="flex items-center gap-1">
+              {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+              <code
+                className="bg-gray-100 p-1 rounded cursor-pointer hover:bg-gray-200 flex items-center gap-2"
+                onClick={() => copyToClipboard(MOCK_USDC_ADDRESS)}
+              >
+                {`${MOCK_USDC_ADDRESS.slice(0, 6)}...${MOCK_USDC_ADDRESS.slice(-4)}`}{" "}
+                <Copy className="h-4 w-4" />
+              </code>
+              <a
+                href={`${EXPLORER_URL}/address/${MOCK_USDC_ADDRESS}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:text-blue-600"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </div>
           </div>
         </div>
       </Card>
 
-      <Card className="w-full max-w-md mx-4 bg-white">
+      <Card className="w-full max-w-md mx-4 bg-white w-[400px]">
         <div className="p-6 flex flex-col items-center justify-center space-y-6">
           <h2 className="text-sm font-medium text-gray-600 w-full">Execute</h2>
           <div className="space-y-4 w-full max-w-sm">
@@ -237,13 +252,12 @@ export default function DemoInterface() {
             <div className="w-full space-y-4">
               <div className="flex gap-4">
                 <Button
-                  onClick={() => (allowances.usdc ? swap() : approve())}
-                  disabled={allowances.usdc !== 0n}
+                  onClick={handleSwap}
                   className="flex-1 border-2 border-blue-500 text-blue-500 hover:bg-blue-50 transition-all duration-200"
                   variant="outline"
+                  disabled={isSwapping}
                 >
-                  {isApproving ? "Approving..." : "Approve"} and{" "}
-                  {isSwapping ? "Buying..." : "Buy"}
+                  {isSwapping ? "Buying..." : "Approve & Buy"}
                 </Button>
               </div>
             </div>
