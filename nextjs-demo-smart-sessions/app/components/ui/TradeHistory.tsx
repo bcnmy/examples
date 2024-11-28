@@ -3,11 +3,11 @@ import { Card, CardContent } from "@/app/components/ui/card"
 import { ScrollArea } from "@/app/components/ui/scroll-area"
 import { Badge } from "@/app/components/ui/badge"
 import { ExternalLink, AlertCircle } from "lucide-react"
-import { useAutoTrade } from "@/app/hooks/use-auto-trade"
+import { useMarketStore } from "@/app/stores/marketStore"
 import { StatusBadge } from "./StatusBadge"
 
 export function TradeHistory() {
-  const { trades } = useAutoTrade()
+  const trades = useMarketStore((state) => state.tracking.trades)
 
   return (
     <Card className="fixed bottom-4 left-4 w-80 bg-black/40 backdrop-blur-sm border-white/10">

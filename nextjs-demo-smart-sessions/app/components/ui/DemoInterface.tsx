@@ -1,6 +1,6 @@
 import { MOCK_POOL_ADDRESS, MOCK_USDC_ADDRESS } from "@/app/lib/constants"
 import { Card } from "./card"
-import { Copy, ExternalLink } from "lucide-react"
+import { Copy, ExternalLink, Loader2 } from "lucide-react"
 import { Button } from "./button"
 import { useEffect, useState } from "react"
 import { useAutoClaim } from "@/app/hooks/use-auto-claim"
@@ -10,11 +10,13 @@ import { AccountLink } from "./AccountLink"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { privateKeyToAccount } from "viem/accounts"
 import type { Hex } from "viem"
-import type { SessionData } from "@biconomy/sdk"
 import { useSwap } from "@/app/hooks/use-swap"
 import { TaskDialog } from "./TaskDialog"
 import { SuccessDialog } from "./SuccessDialog"
 import { baseSepolia } from "viem/chains"
+import { useAllowance } from "@/app/hooks/use-allowance"
+import type { SessionData } from "@biconomy/sdk"
+import { useGrantPermissions } from "@/app/hooks/use-grant-permission"
 
 export default function DemoInterface() {
   useAutoClaim()
@@ -29,6 +31,11 @@ export default function DemoInterface() {
   const sessionKeyAccount = privateKeyToAccount(
     `0x${process.env.NEXT_PUBLIC_PRIVATE_KEY}`
   )
+
+  const test = useGrantPermissions()
+
+  console.log({ test })
+
   const sessionData: SessionData = {
     granter: nexusAddress as Hex,
     sessionPublicKey: sessionKeyAccount.address,
@@ -37,16 +44,26 @@ export default function DemoInterface() {
     }
   }
 
+  const { allowances } = useAllowance(nexusAddress)
+  console.log({ allowances, permissionId })
+
   const {
     swap,
     isLoading: isSwapping,
-    error: swapError
+    error: swapError,
+    success
   } = useSwap({
     nexusAddress,
     sessionData,
     sessionKeyAccount,
-    permissionIdIndex: 1
+    permissionIdIndex: 0
   })
+
+  useEffect(() => {
+    if (success) {
+      setShowSuccess(true)
+    }
+  }, [success])
 
   useEffect(() => {
     if (address && chain && isConnected && initializeNexusClient) {
@@ -82,15 +99,11 @@ export default function DemoInterface() {
 
   const EXPLORER_URL = "https://sepolia.basescan.org"
 
-  const handleSwap = async () => {
-    try {
-      const hash = await swap()
-      setSuccessTxHash(hash)
+  useEffect(() => {
+    if (success) {
       setShowSuccess(true)
-    } catch (error) {
-      console.error("Swap failed:", error)
     }
-  }
+  }, [success])
 
   return (
     <div className="fixed inset-0 flex items-center justify-center flex-col gap-4">
@@ -232,34 +245,41 @@ export default function DemoInterface() {
 
             <div>
               <label
-                htmlFor="permissionId"
+                htmlFor="approvalPermissionId"
                 className="block text-sm font-medium text-gray-700"
               >
                 Permission ID
               </label>
+              {/* <label htmlFor="allowance">{allowances.usdc.toString()}</label> */}
               <div className="mt-1 relative">
                 <input
                   type="text"
-                  id="permissionId"
+                  id="approvalPermissionId"
                   className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-black"
-                  placeholder="Enter permission ID"
+                  placeholder="Enter approval permission ID"
                   value={permissionId}
                   onChange={(e) => setPermissionId(e.target.value as Hex)}
                 />
               </div>
             </div>
-
-            <div className="w-full space-y-4">
-              <div className="flex gap-4">
-                <Button
-                  onClick={handleSwap}
-                  className="flex-1 border-2 border-blue-500 text-blue-500 hover:bg-blue-50 transition-all duration-200"
-                  variant="outline"
-                  disabled={isSwapping}
-                >
-                  {isSwapping ? "Buying..." : "Approve & Buy"}
-                </Button>
-              </div>
+            <div className="pt-4">
+              <Button
+                onClick={() => swap()}
+                disabled={isSwapping || !permissionId}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white transition-colors duration-200"
+              >
+                {isSwapping ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Swapping...
+                  </div>
+                ) : (
+                  "Approve and Swap"
+                )}
+              </Button>
+              {swapError && (
+                <p className="mt-2 text-sm text-red-600">{swapError.message}</p>
+              )}
             </div>
           </div>
         </div>

@@ -10,6 +10,7 @@ import {
 import {
   createBicoPaymasterClient,
   createNexusClient,
+  uuid,
   type NexusClient
 } from "@biconomy/sdk"
 
@@ -106,7 +107,7 @@ export const useMarketStore = create<MarketState>()(
 
       // New trade tracking actions
       addTrade: (trade) => {
-        const id = crypto.randomUUID()
+        const id = uuid()
         const newTrade: Trade = {
           ...trade,
           id,

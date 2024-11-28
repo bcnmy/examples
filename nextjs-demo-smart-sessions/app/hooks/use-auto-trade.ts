@@ -35,7 +35,12 @@ export function useAutoTrade() {
 
   const executeTrade = useCallback(async () => {
     // Prevent concurrent executions
-    if (isExecutingRef.current || !sessionData || !nexusClient || !nexusAddress) {
+    if (
+      isExecutingRef.current ||
+      !sessionData ||
+      !nexusClient ||
+      !nexusAddress
+    ) {
       return
     }
 

@@ -49,6 +49,7 @@ export function TaskDialog({ isOpen, onClose }: TaskDialogProps) {
           <div className="space-y-3">
             <h3 className="text-lg font-semibold text-gray-900">Steps:</h3>
             <ol className="text-gray-700 list-decimal list-inside space-y-2">
+              <li>Grab a partner (Groups of two or three)</li>
               <li>Read the documentation on granting permissions</li>
               <li>Write code to grant necessary permissions to the dapp</li>
               <li>Test your implementation using this interface</li>

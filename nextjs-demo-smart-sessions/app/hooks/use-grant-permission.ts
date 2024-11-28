@@ -87,26 +87,17 @@ export function useGrantPermissions() {
       // Define permissions for execute function
       const sessionRequestedInfo = [
         {
+          sessionPublicKey,
           sessionKeyData: sessionPublicKey as Hex,
           actionPoliciesInfo: [
             {
               contractAddress: MOCK_POOL_ADDRESS,
               functionSelector
-            }
-          ]
-        },
-        {
-          sessionKeyData: sessionPublicKey as Hex,
-          actionPoliciesInfo: [
+            },
             {
               contractAddress: MOCK_WETH_ADDRESS,
               functionSelector: approveSelector
-            }
-          ]
-        },
-        {
-          sessionKeyData: sessionPublicKey as Hex,
-          actionPoliciesInfo: [
+            },
             {
               contractAddress: MOCK_USDC_ADDRESS,
               functionSelector: approveSelector

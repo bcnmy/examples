@@ -33,11 +33,12 @@ export function useSwap({
   nexusAddress,
   sessionData,
   sessionKeyAccount,
-  permissionIdIndex = 1 // Assuming this is the correct permission index for swapping
+  permissionIdIndex = 0 // Assuming this is the correct permission index for swapping
 }: UseSwapProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [hash, setHash] = useState<Hex | null>(null)
+  const [success, setSuccess] = useState(false)
 
   const swap = useCallback(async () => {
     if (!nexusAddress || !sessionData || !sessionKeyAccount) {
@@ -118,6 +119,7 @@ export function useSwap({
       })
 
       if (userOpReceipt.success.toString() !== "true") {
+        console.log({ userOpReceipt })
         throw new Error("Swap transaction failed")
       }
 
@@ -146,6 +148,7 @@ export function useSwap({
     swap,
     isLoading,
     error,
-    hash
+    hash,
+    success
   }
 }

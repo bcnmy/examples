@@ -1,26 +1,11 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { X, Loader2, Sparkles } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { useMarketStore } from "@/app/stores/marketStore"
 import { useAutoClaim } from "@/app/hooks/use-auto-claim"
 
 export function DemoBanner() {
   const [isVisible, setIsVisible] = useState(true)
-  const { nexusAddress } = useMarketStore()
-  const { shouldAutoClaim } = useAutoClaim()
-
-  useEffect(() => {
-    const isClosed = localStorage.getItem("demoBannerClosed")
-    if (isClosed) {
-      setIsVisible(false)
-      return
-    }
-
-    if (!shouldAutoClaim) {
-      setIsVisible(false)
-      localStorage.setItem("demoBannerClosed", "true")
-    }
-  }, [shouldAutoClaim])
+  useAutoClaim()
 
   const handleClose = () => {
     localStorage.setItem("demoBannerClosed", "true")

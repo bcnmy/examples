@@ -91,7 +91,10 @@ export async function POST(request: Request) {
       )
 
       if (allowanceIsLessThanAmount) {
-        console.log("Starting approval process...")
+        console.log("Starting approval process...", [
+          MOCK_WETH_ADDRESS,
+          MOCK_USDC_ADDRESS
+        ])
 
         const approvalReceipts = await approveTokens(
           [MOCK_WETH_ADDRESS, MOCK_USDC_ADDRESS],
@@ -207,7 +210,7 @@ async function approveTokens(
   sessionData: any,
   usersNexusClient: any
 ) {
-  console.log("=== Starting Token Approvals ===")
+  console.log("=== Starting Token Approvals ===", tokens)
   const maxApproval = 2n ** 256n - 1n
   const receipts = []
 
@@ -215,7 +218,7 @@ async function approveTokens(
     const tokenAddress = tokens[i]
     const permissionIdIndex = i + 1
 
-    console.log(`Approving token ${i + 1}/${tokens.length}: ${tokenAddress}`)
+    // console.log(`Approving token ${i + 1}/${tokens.length}: ${tokenAddress}`)
 
     try {
       const module = toSmartSessionsValidator({
@@ -223,7 +226,7 @@ async function approveTokens(
         account: usersNexusClient?.account,
         moduleData: {
           ...sessionData?.moduleData,
-          permissionIdIndex
+          permissionIdIndex: 0
         }
       })
 

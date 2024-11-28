@@ -30,13 +30,6 @@ export function useApproveToken({
   sessionKeyAccount,
   permissionIdIndex = 0 // Assuming this is the correct permission index for USDC approval
 }: UseApproveTokenProps) {
-  console.log("Approving token...", {
-    nexusAddress,
-    sessionData,
-    sessionKeyAccount,
-    permissionIdIndex
-  })
-
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [hash, setHash] = useState<Hex | null>(null)

@@ -13,8 +13,6 @@ import { DemoBanner } from "./DemoBanner"
 import { HowItWorksDialog } from "./HowItWorks"
 import { useAutoTrade } from "@/app/hooks/use-auto-trade"
 import { AccountLink } from "./AccountLink"
-import { TradeHistory } from "./TradeHistory"
-import { StatusBadge } from "./StatusBadge"
 import { ActiveTrader } from "./ActiveTrader"
 
 interface MarketInterfaceProps {
@@ -65,20 +63,15 @@ export function MarketInterface({
   }
 
   return (
-    <main
-      className={`min-h-screen bg-black bg-circuit-pattern
-        before:content-[''] before:fixed before:inset-0 before:-z-10
-        before:bg-[radial-gradient(circle_at_top_left,_var(--tw-gradient-from)_0%,_var(--tw-gradient-to)_70%)]
-        ${
-          isBullish
-            ? "before:from-emerald-500/10 before:to-transparent"
-            : "before:from-bearish/10 before:to-transparent"
-        }
-        ${animationClass}
-      `}
-    >
+    <main className={`min-h-screen bg-black bg-circuit-pattern relative`}>
       <DemoBanner />
-      <ActiveTrader currentTrade={tradeState.currentTrade ?? null} />
+
+      <div className="fixed top-24 left-4 z-50">
+        <ActiveTrader currentTrade={tradeState.currentTrade ?? null} />
+      </div>
+
+      {/* <TradeHistory /> */}
+
       <div className="container mx-auto px-4 py-8">
         <Card className="border-none">
           <CardContent className="p-6">
