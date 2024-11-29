@@ -3,6 +3,18 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 This tutorial creates a biconomy nexus smart account on the Base Sepolia chain and executes a gasless transaction. 
 ## Getting Started
 
+### Local SDK Development
+To use the local SDK during development:
+1. Run `bun run dev` from the SDK directory
+2. Update your package.json dependencies:
+```json
+{
+  "dependencies": {
+    "@biconomy/sdk": "file:../../sdk/dist/_esm"
+  }
+}
+```
+
 1. Enter the `privateKey` and `paymasterUrl` in the index.ts file.
 2. Transfer some eth to the smart account address on base sepolia and save.
 
