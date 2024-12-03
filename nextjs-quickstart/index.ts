@@ -14,17 +14,17 @@ export const createAccountAndSendTransaction = async () => {
         transport: http(),
         bundlerTransport: http(bundlerUrl),
     });
-    const address = await nexusClient.account.address;
+    const address = nexusClient.account.address;
     console.log("address", address)
     try {
-        const hash = await nexusClient.sendTransaction({ calls: [{to : '0xf5715961C550FC497832063a98eA34673ad7C816', value: 1n}] });
+        const hash = await nexusClient.sendTransaction({ calls: [{ to: '0xf5715961C550FC497832063a98eA34673ad7C816', value: 1n }] });
         console.log("Transaction hash: ", hash);
         const receipt = await nexusClient.waitForTransactionReceipt({ hash });
         console.log("Transaction receipt: ", receipt);
-        return {address , hash};
+        return { address, hash };
     }
     catch (error) {
-        return {address}
+        return { address }
     }
 }
 
