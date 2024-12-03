@@ -45,7 +45,6 @@ export default function Passkey() {
           // @ts-ignore
           signer: walletClient,
           chain: baseSepolia,
-          index: BigInt(8),
           paymaster: createBicoPaymasterClient({
             paymasterUrl: process.env.NEXT_PUBLIC_PAYMASTER_URL || "",
           }),
@@ -116,7 +115,7 @@ export default function Passkey() {
       setPasskeyValidator(passkeyValidator);
       setActivePasskeyName(passkeyName);
       localStorage.setItem('activePasskeyName', passkeyName);
-      toast.success(`Using passkey for ${passkeyName}`, {
+      toast.success(`Using passkey id ${webAuthnKey.authenticatorId}`, {
         position: 'bottom-right'
       });
 
@@ -155,7 +154,7 @@ export default function Passkey() {
       setPasskeyValidator(passkeyValidator);
       setActivePasskeyName(passkeyName);
       localStorage.setItem('activePasskeyName', passkeyName);
-      toast.success(`Using passkey for ${passkeyName}`, {
+      toast.success(`Using passkey id ${webAuthnKey.authenticatorId}`, {
         position: 'bottom-right'
       });
     } catch (error) {
@@ -189,7 +188,18 @@ export default function Passkey() {
   const uninstallPasskeyValidator = async () => {
     setIsLoading(prev => ({ ...prev, uninstall: true }));
     try {
-      const userOpHash = await nexusClient?.uninstallModule({
+      const nexusClientWithPasskeyValidator = await createNexusClient({
+        // @ts-ignore
+        signer: walletClient,
+        chain: baseSepolia,
+        paymaster: createBicoPaymasterClient({
+          paymasterUrl: process.env.NEXT_PUBLIC_PAYMASTER_URL || "",
+        }),
+        transport: http(),
+        module: passkeyValidator,
+        bundlerTransport: http(bundlerUrl),
+      });
+      const userOpHash = await nexusClientWithPasskeyValidator?.uninstallModule({
         module: {
           address: PASSKEY_VALIDATOR_ADDRESS,
           type: "validator",
@@ -219,12 +229,10 @@ export default function Passkey() {
     setIsLoading(prev => ({ ...prev, sendOp: true }));
     try {
       let nexusClientWithPasskeyValidator: NexusClient;
-      const cachedWebAuthnKey = localStorage.getItem('webAuthnKey');
       nexusClientWithPasskeyValidator = await createNexusClient({
         // @ts-ignore
         signer: walletClient,
         chain: baseSepolia,
-        index: BigInt(8),
         paymaster: createBicoPaymasterClient({
           paymasterUrl: process.env.NEXT_PUBLIC_PAYMASTER_URL || "",
         }),
@@ -298,7 +306,7 @@ export default function Passkey() {
               )}
               <div className="mb-4">
                 <label htmlFor="passkeyName" className="block text-sm font-medium text-gray-300 mb-2">
-                  Passkey Username
+                  New Passkey name
                 </label>
                 <input
                   type="text"
@@ -324,24 +332,20 @@ export default function Passkey() {
                   )}
                   Create new passkey
                 </button>
-                {
-                  !passkeyValidator && (
-                    <button
-                      onClick={() => loginPasskey()}
-                      disabled={isLoading.login}
-                      className="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isLoading.login ? (
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                      Use existing passkey
-                    </button>
-                  )
-                }
+                <button
+                  onClick={() => loginPasskey()}
+                  disabled={isLoading.login}
+                  className="bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading.login ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                  Use existing passkey
+                </button>
               </div>
             </div>
           </div>
@@ -352,7 +356,7 @@ export default function Passkey() {
               {isPasskeyInstalled === false ? (
                 <button
                   onClick={() => installPasskeyValidator()}
-                  // disabled={isLoading.install || !activePasskeyName}
+                  disabled={isLoading.install || !activePasskeyName}
                   className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading.install ? (
@@ -362,7 +366,7 @@ export default function Passkey() {
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
                     </svg>
                   )}
-                  Install Passkey {activePasskeyName || passkeyValidator ? `(${activePasskeyName || "Unkown or outdated"})` : "(Select a passkey first)"}
+                  Install Passkey
                 </button>
               ) : (
                 <button
@@ -382,7 +386,7 @@ export default function Passkey() {
               )}
               <button
                 onClick={() => sendUserOpWithPasskeyValidator()}
-                disabled={isLoading.sendOp || !activePasskeyName}
+                disabled={isLoading.sendOp || !activePasskeyName || !isPasskeyInstalled}
                 className="w-full mt-3 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading.sendOp ? (
@@ -392,7 +396,7 @@ export default function Passkey() {
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clipRule="evenodd" />
                   </svg>
                 )}
-                Send UserOp
+                Send UserOp using Passkey
               </button>
             </div>
           </div>
