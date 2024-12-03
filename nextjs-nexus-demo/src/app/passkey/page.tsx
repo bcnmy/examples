@@ -3,10 +3,11 @@
 import { useAccount, useWalletClient, useConnect, http } from 'wagmi'
 import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
-import { toWebAuthnKey, toPasskeyValidator, WebAuthnMode, createNexusClient, NexusClient } from '@biconomy/sdk'
+import { createNexusClient, NexusClient, createBicoPaymasterClient } from '@biconomy/sdk'
 import { baseSepolia } from 'wagmi/chains'
 import Header from '@/components/Header'
 import { PASSKEY_VALIDATOR_ADDRESS } from '@/utils/constants/addresses'
+import { toWebAuthnKey, toPasskeyValidator, WebAuthnMode } from '@biconomy/passkey'
 
 const bundlerUrl = process.env.NEXT_PUBLIC_BUNDLER_URL;
 
@@ -43,6 +44,9 @@ export default function Passkey() {
                     signer: walletClient,
                     chain: baseSepolia,
                     index: BigInt(8),
+                    paymaster: createBicoPaymasterClient({
+                        paymasterUrl: process.env.NEXT_PUBLIC_PAYMASTER_URL || "",
+                    }),
                     transport: http(),
                     bundlerTransport: http(bundlerUrl),
                 });
@@ -61,9 +65,7 @@ export default function Passkey() {
                         authenticatorIdHash: JSON.parse(cachedWebAuthnKey).authenticatorIdHash,
                     }
                     const passkeyValidator = await toPasskeyValidator({
-                        signer: nexusClient?.account.signer,
-                        chainId: baseSepolia.id,
-                        accountAddress: nexusClient?.account.address,
+                        account: nexusClient?.account,
                         webAuthnKey: deFormattedWebAuthnKey,
                     })
                     setPasskeyValidator(passkeyValidator);
@@ -89,15 +91,11 @@ export default function Passkey() {
         try {
             const webAuthnKey = await toWebAuthnKey({
                 passkeyName: passkeyName,
-                passkeyServerUrl: "https://passkeys.zerodev.app/api/v3/6e2a2efc-f9ad-4b1a-931d-a5888eb0fdb5",
                 mode: WebAuthnMode.Register,
-                passkeyServerHeaders: {}
             })
 
             const passkeyValidator = await toPasskeyValidator({
-                signer: nexusClient?.account.signer,
-                chainId: baseSepolia.id,
-                accountAddress: nexusClient?.account.address,
+                account: nexusClient?.account,
                 webAuthnKey,
             })
 
@@ -131,16 +129,11 @@ export default function Passkey() {
         setIsLoading(prev => ({ ...prev, login: true }));
         try {
             const webAuthnKey = await toWebAuthnKey({
-                passkeyName: passkeyName,
-                passkeyServerUrl: "https://passkeys.zerodev.app/api/v3/6e2a2efc-f9ad-4b1a-931d-a5888eb0fdb5",
                 mode: WebAuthnMode.Login,
-                passkeyServerHeaders: {}
             })
 
             const passkeyValidator = await toPasskeyValidator({
-                signer: nexusClient?.account.signer,
-                chainId: baseSepolia.id,
-                accountAddress: nexusClient?.account.address,
+                account: nexusClient?.account,
                 webAuthnKey,
             })
 
@@ -226,6 +219,9 @@ export default function Passkey() {
                 signer: walletClient,
                 chain: baseSepolia,
                 index: BigInt(8),
+                paymaster: createBicoPaymasterClient({
+                    paymasterUrl: process.env.NEXT_PUBLIC_PAYMASTER_URL || "",
+                }),
                 transport: http(),
                 module: passkeyValidator,
                 bundlerTransport: http(bundlerUrl),
@@ -350,7 +346,7 @@ export default function Passkey() {
                             {isPasskeyInstalled === false ? (
                                 <button
                                     onClick={() => installPasskeyValidator()}
-                                    disabled={isLoading.install || !activePasskeyName}
+                                    // disabled={isLoading.install || !activePasskeyName}
                                     className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isLoading.install ? (
