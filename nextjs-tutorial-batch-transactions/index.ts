@@ -21,7 +21,10 @@ export const createAccountAndSendTransaction = async () => {
     const address = await nexusClient.account.address;
     console.log("address", address)
     try {
-        const hash = await nexusClient.sendTransaction({ calls: [{to : '0xf5715961C550FC497832063a98eA34673ad7C816', value: parseEther('0')}] });
+        const hash = await nexusClient.sendTransaction({ calls: [
+          {to : '0xf5715961C550FC497832063a98eA34673ad7C816', value: parseEther('0')},
+          {to : '0x0000000000000000000000000000000000000000', data: "0x"}
+        ] });
         console.log("Transaction hash: ", hash);
         const receipt = await nexusClient.waitForTransactionReceipt({ hash });
         console.log("Transaction receipt: ", receipt);

@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@biconomy/sdk": "^0.0.1",
+    "@biconomy/sdk": "^0.0.7",
     "dotenv": "^16.4.5",
     "next": "14.2.14",
     "react": "^18",
