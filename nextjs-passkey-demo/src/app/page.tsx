@@ -3,7 +3,7 @@
 import { useAccount, useWalletClient, useConnect, http } from 'wagmi'
 import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
-import { createNexusClient, NexusClient, createBicoPaymasterClient } from '@biconomy/sdk'
+import { createNexusClient, NexusClient, createBicoPaymasterClient, moduleActivator } from '@biconomy/sdk'
 import { baseSepolia } from 'wagmi/chains'
 import Header from '@/components/Header'
 import { K1_VALIDATOR, PASSKEY_VALIDATOR_ADDRESS } from '@/utils/constants/addresses'
@@ -188,18 +188,8 @@ export default function Passkey() {
   const uninstallPasskeyValidator = async () => {
     setIsLoading(prev => ({ ...prev, uninstall: true }));
     try {
-      const nexusClientWithPasskeyValidator = await createNexusClient({
-        // @ts-ignore
-        signer: walletClient,
-        chain: baseSepolia,
-        paymaster: createBicoPaymasterClient({
-          paymasterUrl: process.env.NEXT_PUBLIC_PAYMASTER_URL || "",
-        }),
-        transport: http(),
-        module: passkeyValidator,
-        bundlerTransport: http(bundlerUrl),
-      });
-      const userOpHash = await nexusClientWithPasskeyValidator?.uninstallModule({
+      nexusClient?.extend(moduleActivator(passkeyValidator));
+      const userOpHash = await nexusClient?.uninstallModule({
         module: {
           address: PASSKEY_VALIDATOR_ADDRESS,
           type: "validator",
@@ -228,19 +218,8 @@ export default function Passkey() {
   const sendUserOpWithPasskeyValidator = async () => {
     setIsLoading(prev => ({ ...prev, sendOp: true }));
     try {
-      let nexusClientWithPasskeyValidator: NexusClient;
-      nexusClientWithPasskeyValidator = await createNexusClient({
-        // @ts-ignore
-        signer: walletClient,
-        chain: baseSepolia,
-        paymaster: createBicoPaymasterClient({
-          paymasterUrl: process.env.NEXT_PUBLIC_PAYMASTER_URL || "",
-        }),
-        transport: http(),
-        module: passkeyValidator,
-        bundlerTransport: http(bundlerUrl),
-      });
-      let hash = await nexusClientWithPasskeyValidator.sendTransaction({
+      nexusClient?.extend(moduleActivator(passkeyValidator));
+      let hash = await nexusClient?.sendTransaction({
         calls: [
           {
             to: account.address as Address,
@@ -252,13 +231,13 @@ export default function Passkey() {
         position: 'bottom-right'
       });
 
-      const receipt = await nexusClientWithPasskeyValidator.waitForTransactionReceipt({ hash: hash });
+      const receipt = await nexusClient?.waitForTransactionReceipt({ hash: hash as Hex });
 
       toast.success(
         <div>
           Transaction confirmed!
           <a
-            href={`https://sepolia.basescan.org/tx/${receipt.transactionHash}`}
+            href={`https://sepolia.basescan.org/tx/${receipt?.transactionHash}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-500 hover:text-blue-700 ml-2"
