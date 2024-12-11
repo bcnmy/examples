@@ -17,8 +17,8 @@ import {
   createNexusClient,
   toSmartSessionsValidator,
   smartSessionUseActions,
-  type SessionData,
-  createBicoPaymasterClient
+  createBicoPaymasterClient,
+  type SessionData
 } from "@biconomy/sdk"
 import { amountUSDC } from "../api/faucet/route"
 
@@ -58,7 +58,6 @@ export function useSwap({
         bundlerTransport: http(
           "https://bundler.biconomy.io/api/v3/84532/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44"
         ),
-        // @ts-ignore
         signer: sessionKeyAccount,
         paymaster: createBicoPaymasterClient({
           transport: http(process.env.NEXT_PUBLIC_PAYMASTER_URL!)

@@ -222,7 +222,7 @@ const Chart = ({ symbol }: ChartProps) => {
       }
       cleanupPromise.then((cleanup) => cleanup())
     }
-  }, [symbol])
+  }, [setIsBullish, symbol])
 
   return (
     <div

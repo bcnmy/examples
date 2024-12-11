@@ -10,17 +10,17 @@ import { config } from "./config/wallet"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import "@rainbow-me/rainbowkit/styles.css"
 import { Toaster } from "@/app/components/ui/toaster"
-import { useEffect } from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
-// Move these initializations outside the component
-const queryClient = new QueryClient()
-
-export const ibmPlexMono = IBM_Plex_Mono({
+// Move font initialization outside component but don't export it
+const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   display: "swap"
 })
+
+// Move these initializations outside the component
+const queryClient = new QueryClient()
 
 export default function RootLayout({
   children
@@ -34,13 +34,6 @@ export default function RootLayout({
   }, [])
 
   const isBullish = useMarketStore((state) => state.isBullish)
-
-  const bgColor =
-    isBullish === null
-      ? "bg-slate-900"
-      : isBullish
-        ? "bg-green-950"
-        : "bg-bearish-dark"
 
   return (
     <html lang="en">

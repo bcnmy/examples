@@ -4,7 +4,7 @@ import type { Hex } from "viem"
 import { cn } from "@/app/lib/utils"
 
 interface PermissionStatusProps {
-  status: "idle" | "enabling" | "granting" | "granted" | "error"
+  status: "idle" | "enabling" | "granting" | "granted" | "active" | "error"
   userOpHash: Hex | null
   transactionHash: Hex | null
   onClose?: () => void
@@ -32,18 +32,22 @@ export function PermissionStatus({
       )}
 
       <div className="flex flex-col items-center">
-        {(status === "enabling" || status === "granting") && (
+        {(status === "enabling" || status === "granting" || status === "active") && (
           <div className="flex flex-col items-center">
             <Loader2 className="h-12 w-12 text-emerald-500 animate-spin mb-4" />
             <h3 className="text-lg font-medium text-white mb-2">
               {status === "enabling"
                 ? "Enabling Smart Sessions"
-                : "Granting Permissions"}
+                : status === "granting"
+                ? "Granting Permissions"
+                : "Auto-Trading Active"}
             </h3>
             <p className="text-sm text-white/60 text-center max-w-xs">
               {status === "enabling"
                 ? "Setting up your smart account for automated trading..."
-                : "Grant permission to execute trades on your behalf..."}
+                : status === "granting"
+                ? "Grant permission to execute trades on your behalf..."
+                : "Your smart account is actively monitoring and executing trades."}
             </p>
           </div>
         )}

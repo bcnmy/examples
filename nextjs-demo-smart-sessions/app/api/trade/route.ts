@@ -14,7 +14,10 @@ import {
   createBicoPaymasterClient,
   createNexusClient,
   toSmartSessionsValidator,
-  smartSessionUseActions
+  smartSessionUseActions,
+  parse,
+  type SessionData,
+  type NexusClient
 } from "@biconomy/sdk"
 import { createPublicClient } from "viem"
 import { ApprovalStore } from "@/app/lib/approvalStore"
@@ -22,9 +25,8 @@ import { amountUSDC, amountWETH } from "../faucet/route"
 
 config()
 
-const sessionKeyAccount = privateKeyToAccount(
-  `0x${process.env.NEXT_PUBLIC_PRIVATE_KEY}` as Hex
-)
+const pKey: Hex = `0x${process.env.PRIVATE_KEY}`
+const sessionKeyAccount = privateKeyToAccount(pKey)
 
 export async function POST(request: Request) {
   if (!process.env.PRIVATE_KEY) {
@@ -37,16 +39,10 @@ export async function POST(request: Request) {
   try {
     const req = await request.json()
 
-    const {
-      userAddress,
-      isBullish,
-      amount: amount_,
-      sessionData: sessionData_
-    } = req
+    const { userAddress, isBullish, sessionData: sessionData_ } = req
 
     // const amount = BigInt(amount_.value)
-    const sessionData = JSON.parse(sessionData_)
-
+    const sessionData = parse(sessionData_) as SessionData
     // Create a public client to check allowances
     const publicClient = createPublicClient({
       chain: baseSepolia,
@@ -60,7 +56,6 @@ export async function POST(request: Request) {
       bundlerTransport: http(
         "https://bundler.biconomy.io/api/v3/84532/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44"
       ),
-      // @ts-ignore
       signer: sessionKeyAccount,
       paymaster: createBicoPaymasterClient({
         transport: http(process.env.NEXT_PUBLIC_PAYMASTER_URL!)
@@ -71,7 +66,6 @@ export async function POST(request: Request) {
 
     // Check if user has already approved
     if (!isApproved) {
-      console.log({ isApproved })
       const maxApproval = 2n ** 256n - 1n
 
       // Check token allowance before proceeding
@@ -85,6 +79,8 @@ export async function POST(request: Request) {
           })
         })
       )
+
+      console.log({ isApproved, wethAllowance, usdcAllowance })
 
       const allowanceIsLessThanAmount = [wethAllowance, usdcAllowance].some(
         (allowance) => allowance < maxApproval
@@ -118,6 +114,9 @@ export async function POST(request: Request) {
 
         console.log("All approvals completed successfully")
         await ApprovalStore.setApproved(userAddress)
+      } else {
+        await ApprovalStore.setApproved(userAddress)
+        console.log("Approvals already set")
       }
     }
 
@@ -146,8 +145,6 @@ export async function POST(request: Request) {
 
     const args = [commands, inputs, deadline]
 
-    console.log("args", { args })
-
     const userOpHash = await executeClient.usePermission({
       calls: [
         {
@@ -160,8 +157,6 @@ export async function POST(request: Request) {
         }
       ]
     })
-
-    console.log("userOpHash", { userOpHash })
 
     if (!userOpHash) {
       return NextResponse.json(
@@ -178,7 +173,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: "Transaction failed",
-          details: `Transaction reverted${userOpReceipt.reason ? `: ${userOpReceipt.reason}` : ""}`,
+          details: `Tx reverted ${userOpReceipt.reason ? `: ${userOpReceipt.reason}` : ""}`,
           userOpHash,
           transactionHash: userOpReceipt.receipt.transactionHash
         },
@@ -205,10 +200,11 @@ export async function POST(request: Request) {
     throw error
   }
 }
+
 async function approveTokens(
   tokens: Hex[],
-  sessionData: any,
-  usersNexusClient: any
+  sessionData: SessionData,
+  usersNexusClient: NexusClient
 ) {
   console.log("=== Starting Token Approvals ===", tokens)
   const maxApproval = 2n ** 256n - 1n
@@ -216,21 +212,19 @@ async function approveTokens(
 
   for (let i = 0; i < tokens.length; i++) {
     const tokenAddress = tokens[i]
-    const permissionIdIndex = i + 1
 
     // console.log(`Approving token ${i + 1}/${tokens.length}: ${tokenAddress}`)
 
     try {
-      const module = toSmartSessionsValidator({
+      const sessionsModule = toSmartSessionsValidator({
         signer: sessionKeyAccount,
         account: usersNexusClient?.account,
-        moduleData: {
-          ...sessionData?.moduleData,
-          permissionIdIndex: 0
-        }
+        moduleData: sessionData.moduleData
       })
 
-      const client = usersNexusClient.extend(smartSessionUseActions(module))
+      const client = usersNexusClient.extend(
+        smartSessionUseActions(sessionsModule)
+      )
 
       // Execute approval
       const userOpHash = await client.usePermission({

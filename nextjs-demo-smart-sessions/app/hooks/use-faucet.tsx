@@ -30,7 +30,7 @@ export function useFaucet() {
         title: "Tokens Claimed! 🎉",
         description: (
           <div className="flex flex-col gap-2">
-            <p>You've received 5 USDC and 0.001 WETH</p>
+            <p>You&apos;ve received 5 USDC and 0.001 WETH</p>
             <div className="flex gap-2">
               <a
                 href={`https://sepolia.basescan.org/tx/${data.hashes[0]}`}

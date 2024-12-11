@@ -32,15 +32,11 @@ export function AccountLink() {
       className="flex items-center justify-between gap-2 rounded-xl bg-white px-2 py-1 text-base font-medium"
     >
       <span className="text-[#25292E]">
-        {formatEther(ethBalance?.value ?? 0n)} ETH
+        {`${formatEther(ethBalance?.value ?? 0n).substring(0, 4)} ETH`}
       </span>
       <div className="flex items-center gap-2 bg-slate-100 rounded-xl px-2 py-1">
         <Jazzicon diameter={18} seed={jsNumberForAddress(nexusAddress)} />
         <span className="hidden sm:inline text-[#25292E]">{shortAddress}</span>
-        <ExternalLink
-          size={14}
-          className="text-[#25292E]/60 hover:text-[#25292E]"
-        />
       </div>
     </a>
   )

@@ -10,9 +10,9 @@ import {
 import {
   createBicoPaymasterClient,
   createNexusClient,
-  uuid,
   type NexusClient
 } from "@biconomy/sdk"
+import { uuid } from "../lib/utils"
 
 export type Trade = {
   id: string // unique identifier
@@ -36,12 +36,14 @@ type MarketState = {
   nexusClient: NexusClient | null
   nexusAddress: Address | undefined
   sessionData: string | null
+  marketStatus: "active" | "inactive"
   tracking: TradeTracking
   // Actions
   setIsBullish: (state: boolean) => void
   initializeNexusClient: (address: Address, chain: Chain) => Promise<void>
   resetNexusClient: () => void
   setSessionData: (data: string | null) => void
+  setMarketStatus: (status: "active" | "inactive") => void
   // Trade tracking actions
   addTrade: (trade: Omit<Trade, "id" | "timestamp">) => string
   updateTrade: (id: string, update: Partial<Trade>) => void
@@ -54,12 +56,13 @@ export const useMarketStore = create<MarketState>()(
   persist(
     (set, get) => ({
       isBullish: true,
-      nexusClient: null,
-      nexusAddress: undefined,
+      nexusClient: null as NexusClient | null,
+      nexusAddress: undefined as Address | undefined,
       sessionData: null,
+      marketStatus: "inactive",
       tracking: {
-        trades: [],
-        pendingTrades: new Map()
+        trades: [] as Trade[],
+        pendingTrades: new Map<string, Trade>()
       },
 
       // Existing actions
@@ -70,24 +73,18 @@ export const useMarketStore = create<MarketState>()(
         }
         if (!global?.window?.ethereum || !address || !chain) return
 
-        const newSigner = createWalletClient({
-          chain,
-          transport: custom(global?.window.ethereum!)
-        }) as any
-
         try {
           const nexusClient = await createNexusClient({
-            // @ts-ignore
             chain,
-            // @ts-ignore
             transport: http(),
-            // @ts-ignore
             bundlerTransport: http(
               "https://bundler.biconomy.io/api/v3/84532/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44"
             ),
-            signer: newSigner,
+            signer: createWalletClient({
+              chain,
+              transport: custom(global?.window?.ethereum ?? "")
+            }),
             paymaster: createBicoPaymasterClient({
-              // @ts-ignore
               transport: http(process.env.NEXT_PUBLIC_PAYMASTER_URL!)
             })
           })
@@ -104,6 +101,7 @@ export const useMarketStore = create<MarketState>()(
         set({ nexusClient: null, nexusAddress: undefined })
       },
       setSessionData: (data) => set({ sessionData: data }),
+      setMarketStatus: (status) => set({ marketStatus: status }),
 
       // New trade tracking actions
       addTrade: (trade) => {

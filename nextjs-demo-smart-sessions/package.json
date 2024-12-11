@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@biconomy/sdk": "0.0.10",
+    "@biconomy/sdk": "0.0.19",
     "@radix-ui/react-dialog": "^1.1.2",
     "@radix-ui/react-popover": "^1.1.2",
     "@radix-ui/react-scroll-area": "^1.2.1",

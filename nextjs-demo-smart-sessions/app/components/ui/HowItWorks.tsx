@@ -5,7 +5,7 @@ import {
   LineChart,
   Shield,
   Key,
-  HelpCircle
+  Code2
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import {
@@ -22,17 +22,25 @@ export function HowItWorksDialog() {
     <Dialog>
       <DialogTrigger asChild>
         <Button
-          variant="ghost"
-          size="icon"
-          className="h-5 w-5 text-white/60 hover:text-white hover:bg-white/10 rounded-full"
+          variant="outline"
+          size="sm"
+          className="text-white bg-black/50 hover:bg-white/10 hover:text-white
+            w-10 h-10 sm:w-auto sm:h-auto px-0 sm:px-4 py-2 
+            flex items-center justify-center gap-2
+            text-sm sm:text-base
+            rounded-lg transition-all duration-200
+            active:scale-95 touch-none"
         >
-          <HelpCircle className="h-4 w-4" />
+          <Code2 className="h-5 w-5" />
+          <span className="hidden sm:inline whitespace-nowrap">
+            What does this do?
+          </span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-black/90 backdrop-blur-xl border-white/10 sm:max-w-[425px] md:max-w-[600px] lg:max-w-[800px]">
+      <DialogContent className="bg-black/90 backdrop-blur-xl border-white/10 sm:max-w-[425px] md:max-w-[600px] lg:max-w-[800px] p-4 sm:p-6">
         <DialogHeader className="pb-4 border-b border-white/10">
           <DialogTitle className="text-xl font-semibold text-white">
-            How It Works
+            What does this do?
           </DialogTitle>
         </DialogHeader>
         <div className="mt-6 pr-6 max-h-[calc(85vh-120px)] overflow-y-auto custom-scrollbar">
@@ -43,20 +51,6 @@ export function HowItWorksDialog() {
   )
 }
 export function HowItWorks() {
-  const [isVisible, setIsVisible] = useState(true)
-
-  useEffect(() => {
-    const hasSeenGuide = localStorage.getItem("hasSeenTradingGuide")
-    if (hasSeenGuide) {
-      setIsVisible(false)
-    }
-  }, [])
-
-  const handleDismiss = () => {
-    localStorage.setItem("hasSeenTradingGuide", "true")
-    setIsVisible(false)
-  }
-
   return (
     <div className="space-y-8">
       <section>
@@ -104,10 +98,10 @@ export function HowItWorks() {
       <section className="pt-6 border-t border-white/10">
         <h4 className="text-white font-medium mb-3">Why This Works:</h4>
         <p className="text-white/60 text-sm leading-relaxed">
-          "The trend is your friend" - By trading in the direction of the trend,
-          we increase our probability of successful trades. The bot
-          automatically identifies these trends and executes trades accordingly,
-          removing emotional bias from trading decisions.
+          `&quot;The trend is your friend`&quot; - By trading in the direction
+          of the trend, we increase our probability of successful trades. The
+          bot automatically identifies these trends and executes trades
+          accordingly, removing emotional bias from trading decisions.
         </p>
       </section>
 
@@ -136,8 +130,8 @@ export function HowItWorks() {
         </h4>
         <p className="text-white/60 text-sm leading-relaxed mb-4">
           Unlike traditional trading bots that require you to give up control of
-          your keys, our solution is fully decentralized. Remember: "Not your
-          keys, not your coins."
+          your keys, our solution is fully decentralized. Remember: &quot;Not
+          your keys, not your coins.&quot;
         </p>
         <ul className="text-white/60 text-sm space-y-3">
           <li className="flex items-center gap-3">

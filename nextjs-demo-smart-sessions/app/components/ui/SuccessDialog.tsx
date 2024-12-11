@@ -38,7 +38,7 @@ export function SuccessDialog({ isOpen, onClose, txHash }: SuccessDialogProps) {
               🎉 Congratulations!
             </h2>
             <p className="text-gray-600">
-              You've successfully completed the trade and won a cookie! 🍪
+              You&lsquo;ve successfully completed the trade and won a cookie! 🍪
             </p>
           </div>
 

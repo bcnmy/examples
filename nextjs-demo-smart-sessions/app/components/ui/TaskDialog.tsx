@@ -83,7 +83,7 @@ export function TaskDialog({ isOpen, onClose }: TaskDialogProps) {
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
             <p className="text-gray-700">
               <span className="font-semibold">💡 Tip:</span> Use the info panel
-              for important addresses and URLs you'll need.
+              for important addresses and URLs you&apos;ll need.
             </p>
           </div>
         </div>

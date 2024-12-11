@@ -8,14 +8,14 @@ import MockTokenWETH from "@/contracts/deployments/base-sepolia/MockToken_WETH.j
 
 config()
 
-const MOCK_USDC_ADDRESS = MockTokenUSDC.address as `0x${string}`
-const MOCK_WETH_ADDRESS = MockTokenWETH.address as `0x${string}`
+const MOCK_USDC_ADDRESS = MockTokenUSDC.address as Hex
+const MOCK_WETH_ADDRESS = MockTokenWETH.address as Hex
 const MOCK_USDC_ABI = MockTokenUSDC.abi
 const MOCK_WETH_ABI = MockTokenWETH.abi
 
-const sessionKeyAccount = privateKeyToAccount(
-  `0x${process.env.NEXT_PUBLIC_PRIVATE_KEY}` as Hex
-)
+
+const pKey: Hex = `0x${process.env.PRIVATE_KEY}`
+const sessionKeyAccount = privateKeyToAccount(pKey)
 
 export const amountUSDC = 5n * 10n ** 6n
 export const amountWETH = 1n * 10n ** 15n

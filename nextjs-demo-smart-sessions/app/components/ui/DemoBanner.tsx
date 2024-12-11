@@ -33,7 +33,7 @@ export function DemoBanner() {
             <p className="text-sm font-medium text-white">
               Welcome to the demo!{" "}
               <span className="text-emerald-400">
-                We'll send you test tokens to try it out
+                We&apos;ll send you test tokens to try it out
               </span>
             </p>
             <Loader2 className="w-4 h-4 animate-spin text-white/60" />

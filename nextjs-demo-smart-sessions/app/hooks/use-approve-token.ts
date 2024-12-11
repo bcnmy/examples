@@ -54,7 +54,6 @@ export function useApproveToken({
         bundlerTransport: http(
           "https://bundler.biconomy.io/api/v3/84532/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44"
         ),
-        // @ts-ignore
         signer: sessionKeyAccount,
         paymaster: createBicoPaymasterClient({
           transport: http(process.env.NEXT_PUBLIC_PAYMASTER_URL!)
@@ -62,7 +61,7 @@ export function useApproveToken({
       })
 
       // Set up validator module
-      const module = toSmartSessionsValidator({
+      const smartSessionsModule = toSmartSessionsValidator({
         signer: sessionKeyAccount,
         account: usersNexusClient?.account,
         moduleData: {
@@ -72,7 +71,9 @@ export function useApproveToken({
       })
 
       // Create client with smart session actions
-      const client = usersNexusClient.extend(smartSessionUseActions(module))
+      const client = usersNexusClient.extend(
+        smartSessionUseActions(smartSessionsModule)
+      )
 
       // Maximum approval amount
       const maxApproval = 2n ** 256n - 1n

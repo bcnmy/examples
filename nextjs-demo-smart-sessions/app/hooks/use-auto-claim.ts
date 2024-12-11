@@ -1,8 +1,5 @@
 import { useEffect, useRef } from "react"
 import type { Address } from "viem/accounts"
-import { MOCK_USDC_ADDRESS } from "../lib/constants"
-import { useBalance } from "wagmi"
-import { MOCK_WETH_ADDRESS } from "../lib/constants"
 import { useFaucet } from "./use-faucet"
 import { useMarketStore } from "../stores/marketStore"
 import { useAssetBalances } from "./use-asset-balances"

@@ -5,7 +5,6 @@ import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { TradingTray } from "@/app/components/ui/TradingTray"
 import { useEffect, useState } from "react"
 import type { Address } from "viem/accounts"
-import { Button } from "@/app/components/ui/button"
 import { CustomConnectButton } from "./ConnectButton"
 import { useMarketStore } from "@/app/stores/marketStore"
 import { useAccount } from "wagmi"
@@ -14,6 +13,9 @@ import { HowItWorksDialog } from "./HowItWorks"
 import { useAutoTrade } from "@/app/hooks/use-auto-trade"
 import { AccountLink } from "./AccountLink"
 import { ActiveTrader } from "./ActiveTrader"
+import { TradeHistory } from "./TradeHistory"
+import { HowItWasBuilt } from "./HowItWasBuilt"
+import { Github } from "lucide-react"
 
 interface MarketInterfaceProps {
   price: string
@@ -31,10 +33,12 @@ export function MarketInterface({
 }: MarketInterfaceProps) {
   const [isTrayOpen, setIsTrayOpen] = useState(false)
   const [animationClass, setAnimationClass] = useState("")
-  const { initializeNexusClient } = useMarketStore()
+  const { initializeNexusClient, marketStatus } = useMarketStore()
   const { address, isConnected, chain } = useAccount()
 
   const tradeState = useAutoTrade()
+
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
 
   useEffect(() => {
     if (address && chain && isConnected && initializeNexusClient) {
@@ -63,33 +67,45 @@ export function MarketInterface({
   }
 
   return (
-    <main className={`min-h-screen bg-black bg-circuit-pattern relative`}>
+    <main className={"min-h-screen bg-black bg-circuit-pattern relative"}>
       <DemoBanner />
 
       <div className="fixed top-24 left-4 z-50">
         <ActiveTrader currentTrade={tradeState.currentTrade ?? null} />
       </div>
 
-      {/* <TradeHistory /> */}
-
       <div className="container mx-auto px-4 py-8">
         <Card className="border-none">
           <CardContent className="p-6">
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="flex items-center gap-4">
                   <h1 className="text-2xl font-bold text-white">WETH/USDC</h1>
-                  <HowItWorksDialog />
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-4 mr-4">
-                    {isConnected ? (
-                      <>
-                        <ConnectButton />
-                        <AccountLink />
-                      </>
-                    ) : null}
+                  <div className="flex items-center gap-2">
+                    <HowItWorksDialog />
+                    <HowItWasBuilt />
+                    <a
+                      href="https://github.com/bcnmy/examples/tree/main/nextjs-demo-smart-sessions"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-white bg-black/50 hover:bg-white/10 hover:text-white
+                        w-10 h-10 rounded-lg transition-all duration-200
+                        flex items-center justify-center
+                        active:scale-95 touch-none"
+                    >
+                      <Github className="h-5 w-5" />
+                    </a>
                   </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  {isConnected && (
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <ConnectButton />
+                      <AccountLink />
+                    </div>
+                  )}
+
                   <div className="relative z-20">
                     <div className="text-right">
                       <p className="text-2xl font-bold text-white">${price}</p>
@@ -128,25 +144,20 @@ export function MarketInterface({
                 </div>
                 <div className="p-4 rounded-lg ">
                   <div className="relative">
-                    {isConnected ? (
-                      <Button
-                        onClick={() => setIsTrayOpen(!isTrayOpen)}
-                        variant={isBullish ? "bullish" : "bearish"}
-                        className="w-full h-full transform transition-all duration-500 
-                          hover:scale-110 hover:rotate-1 hover:shadow-lg
-                          hover:shadow-current"
-                      >
-                        <span className="text-lg">Auto Trade</span>
-                      </Button>
-                    ) : (
+                    {!isConnected ? (
                       <CustomConnectButton />
-                    )}
-
-                    <TradingTray
-                      isTrayOpen={isTrayOpen}
-                      onTrayOpenChange={setIsTrayOpen}
-                      isBullish={isBullish ?? false}
-                    />
+                    ) : marketStatus === "inactive" ? (
+                      <TradingTray
+                        isTrayOpen={isTrayOpen}
+                        onTrayOpenChange={setIsTrayOpen}
+                        isBullish={isBullish ?? false}
+                      />
+                    ) : marketStatus === "active" ? (
+                      <TradeHistory
+                        isOpen={isHistoryOpen}
+                        onOpenChange={setIsHistoryOpen}
+                      />
+                    ) : null}
                   </div>
                 </div>
                 <div className="p-4 rounded-lg text-right">

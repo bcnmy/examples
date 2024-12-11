@@ -1,9 +1,8 @@
 import { useMarketStore } from "../stores/marketStore"
-import {
-  type DeepPartial,
-  type ChartOptions,
-  LineStyle,
-  type CandlestickSeriesOptions
+import type {
+  DeepPartial,
+  ChartOptions,
+  CandlestickSeriesOptions
 } from "lightweight-charts"
 
 export const bullishTheme = {
@@ -117,69 +116,69 @@ export const buttonStyles = {
     border-2 border-white/20 focus:outline-none focus:border-white/40`
 }
 
-export const theme = () => {
-  const isBullish = useMarketStore((state) => state.isBullish)
+// export const theme = () => {
+//   const isBullish = useMarketStore((state) => state.isBullish)
 
-  const activeTheme = isBullish ? bullishTheme : bearishTheme
+//   const activeTheme = isBullish ? bullishTheme : bearishTheme
 
-  return {
-    colors: activeTheme,
-    chart: {
-      options: {
-        ...chartOptions,
-        rightPriceScale: {
-          visible: true,
-          borderVisible: false,
-          borderColor: "transparent",
-          textColor: "rgba(255, 255, 255, 0.6)"
-        }
-      },
-      series: {
-        candlestick: {
-          upColor: bullishTheme.positive,
-          downColor: bearishTheme.negative,
-          borderUpColor: bullishTheme.positive,
-          borderDownColor: bearishTheme.negative,
-          wickUpColor: bullishTheme.positive,
-          wickDownColor: bearishTheme.negative,
-          priceScaleId: "right"
-        },
-        shortMA: {
-          color: bullishTheme.positive,
-          lineWidth: 2,
-          priceScaleId: "right",
-          priceFormat: {
-            type: "price",
-            precision: 2,
-            minMove: 0.01
-          }
-        },
-        longMA: {
-          color: bearishTheme.negative,
-          lineWidth: 2,
-          priceScaleId: "right",
-          priceFormat: {
-            type: "price",
-            precision: 2,
-            minMove: 0.01
-          }
-        },
-        volumeSeries: {
-          upColor: bullishTheme.positive,
-          downColor: bearishTheme.negative,
-          priceFormat: {
-            type: "volume"
-          },
-          priceScaleId: "", // Empty string removes from price scale
-          scaleMargins: {
-            top: 0.8,
-            bottom: 0
-          }
-        }
-      }
-    }
-  }
-}
+//   return {
+//     colors: activeTheme,
+//     chart: {
+//       options: {
+//         ...chartOptions,
+//         rightPriceScale: {
+//           visible: true,
+//           borderVisible: false,
+//           borderColor: "transparent",
+//           textColor: "rgba(255, 255, 255, 0.6)"
+//         }
+//       },
+//       series: {
+//         candlestick: {
+//           upColor: bullishTheme.positive,
+//           downColor: bearishTheme.negative,
+//           borderUpColor: bullishTheme.positive,
+//           borderDownColor: bearishTheme.negative,
+//           wickUpColor: bullishTheme.positive,
+//           wickDownColor: bearishTheme.negative,
+//           priceScaleId: "right"
+//         },
+//         shortMA: {
+//           color: bullishTheme.positive,
+//           lineWidth: 2,
+//           priceScaleId: "right",
+//           priceFormat: {
+//             type: "price",
+//             precision: 2,
+//             minMove: 0.01
+//           }
+//         },
+//         longMA: {
+//           color: bearishTheme.negative,
+//           lineWidth: 2,
+//           priceScaleId: "right",
+//           priceFormat: {
+//             type: "price",
+//             precision: 2,
+//             minMove: 0.01
+//           }
+//         },
+//         volumeSeries: {
+//           upColor: bullishTheme.positive,
+//           downColor: bearishTheme.negative,
+//           priceFormat: {
+//             type: "volume"
+//           },
+//           priceScaleId: "", // Empty string removes from price scale
+//           scaleMargins: {
+//             top: 0.8,
+//             bottom: 0
+//           }
+//         }
+//       }
+//     }
+//   }
+// }
 
 export const chartConfig: DeepPartial<ChartOptions> = {
   layout: {
