@@ -76,7 +76,18 @@ export function useAutoTrade() {
         })
       })
 
-      const responseData = await response.json()
+      // Add better error handling for JSON parsing
+      let responseData: any
+      try {
+        responseData = await response.json()
+      } catch (jsonError) {
+        // If JSON parsing fails, try to get the raw text
+        const rawText = await response.text()
+        throw new Error(
+          `Invalid response format: ${rawText.slice(0, 100)}...`, // Only show first 100 chars
+          { cause: { rawResponse: rawText } }
+        )
+      }
 
       if (!response.ok) {
         throw new Error(
