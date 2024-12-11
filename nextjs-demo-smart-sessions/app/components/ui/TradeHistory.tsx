@@ -12,7 +12,8 @@ import {
   AlertCircle,
   StopCircle,
   History,
-  Trash2
+  Trash2,
+  Loader2
 } from "lucide-react"
 import { useMarketStore } from "@/app/stores/marketStore"
 import { StatusBadge } from "./StatusBadge"
@@ -162,7 +163,7 @@ export function TradeHistory({ isOpen, onOpenChange }: TradeHistoryProps) {
                             >
                               View <ExternalLink className="h-3 w-3" />
                             </a>
-                          ) : (
+                          ) : trade.error ? (
                             <div className="flex items-center gap-1 text-red-400">
                               <AlertCircle className="h-3 w-3" />
                               <span
@@ -177,6 +178,10 @@ export function TradeHistory({ isOpen, onOpenChange }: TradeHistoryProps) {
                                     ? "Transaction reverted"
                                     : "Transaction failed"}
                               </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 text-green-400">
+                              <Loader2 className="h-4 w-4 animate-spin" />
                             </div>
                           )}
                         </div>
