@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { type Hex, http, erc20Abi } from "viem"
+import { type Hex, http, erc20Abi, createPublicClient, maxUint256 } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
 import { baseSepolia } from "viem/chains"
 import { config } from "dotenv"
@@ -16,10 +16,8 @@ import {
   toSmartSessionsValidator,
   smartSessionUseActions,
   parse,
-  type SessionData,
-  type NexusClient
+  type SessionData
 } from "@biconomy/sdk"
-import { createPublicClient } from "viem"
 import { ApprovalStore } from "@/app/lib/approvalStore"
 import { amountUSDC, amountWETH } from "../faucet/route"
 
@@ -41,13 +39,38 @@ export async function POST(request: Request) {
 
     const { userAddress, isBullish, sessionData: sessionData_ } = req
 
-    // const amount = BigInt(amount_.value)
     const sessionData = parse(sessionData_) as SessionData
-    // Create a public client to check allowances
-    const publicClient = createPublicClient({
-      chain: baseSepolia,
-      transport: http()
-    })
+
+    const isApproved = await ApprovalStore.isApproved(userAddress)
+    if (!isApproved) {
+      const publicClient = createPublicClient({
+        chain: baseSepolia,
+        transport: http()
+      })
+
+      const [wethAllowance, usdcAllowance] = await Promise.all(
+        [MOCK_WETH_ADDRESS, MOCK_USDC_ADDRESS].map((tokenAddress_) => {
+          return publicClient.readContract({
+            address: tokenAddress_,
+            abi: erc20Abi,
+            functionName: "allowance",
+            args: [userAddress, MOCK_POOL_ADDRESS]
+          })
+        })
+      )
+
+      const allowanceIsLessThanAmount = [wethAllowance, usdcAllowance].some(
+        (allowance) => allowance < maxUint256
+      )
+
+      if (allowanceIsLessThanAmount) {
+        return NextResponse.json(
+          { error: "Tokens not approved" },
+          { status: 400 }
+        )
+      }
+      await ApprovalStore.setApproved(userAddress)
+    }
 
     const usersNexusClient = await createNexusClient({
       accountAddress: userAddress,
@@ -61,64 +84,6 @@ export async function POST(request: Request) {
         transport: http(process.env.NEXT_PUBLIC_PAYMASTER_URL!)
       })
     })
-
-    const isApproved = await ApprovalStore.isApproved(userAddress)
-
-    // Check if user has already approved
-    if (!isApproved) {
-      const maxApproval = 2n ** 256n - 1n
-
-      // Check token allowance before proceeding
-      const [wethAllowance, usdcAllowance] = await Promise.all(
-        [MOCK_WETH_ADDRESS, MOCK_USDC_ADDRESS].map((tokenAddress_) => {
-          return publicClient.readContract({
-            address: tokenAddress_,
-            abi: erc20Abi,
-            functionName: "allowance",
-            args: [userAddress, MOCK_POOL_ADDRESS]
-          })
-        })
-      )
-
-      console.log({ isApproved, wethAllowance, usdcAllowance })
-
-      const allowanceIsLessThanAmount = [wethAllowance, usdcAllowance].some(
-        (allowance) => allowance < maxApproval
-      )
-
-      if (allowanceIsLessThanAmount) {
-        console.log("Starting approval process...", [
-          MOCK_WETH_ADDRESS,
-          MOCK_USDC_ADDRESS
-        ])
-
-        const approvalReceipts = await approveTokens(
-          [MOCK_WETH_ADDRESS, MOCK_USDC_ADDRESS],
-          sessionData,
-          usersNexusClient
-        )
-
-        // Check if all approvals were successful
-        const allApprovalsSuccessful = approvalReceipts.every(
-          ({ userOpReceipt, txReceipt }) =>
-            userOpReceipt.success.toString() === "true" &&
-            txReceipt.status === "success"
-        )
-
-        if (!allApprovalsSuccessful) {
-          return NextResponse.json(
-            { error: "One or more approvals failed" },
-            { status: 500 }
-          )
-        }
-
-        console.log("All approvals completed successfully")
-        await ApprovalStore.setApproved(userAddress)
-      } else {
-        await ApprovalStore.setApproved(userAddress)
-        console.log("Approvals already set")
-      }
-    }
 
     const commands = isBullish ? "0x01" : "0x00"
     const inputs = [
@@ -199,73 +164,4 @@ export async function POST(request: Request) {
     }
     throw error
   }
-}
-
-async function approveTokens(
-  tokens: Hex[],
-  sessionData: SessionData,
-  usersNexusClient: NexusClient
-) {
-  console.log("=== Starting Token Approvals ===", tokens)
-  const maxApproval = 2n ** 256n - 1n
-  const receipts = []
-
-  for (let i = 0; i < tokens.length; i++) {
-    const tokenAddress = tokens[i]
-
-    // console.log(`Approving token ${i + 1}/${tokens.length}: ${tokenAddress}`)
-
-    try {
-      const sessionsModule = toSmartSessionsValidator({
-        signer: sessionKeyAccount,
-        account: usersNexusClient?.account,
-        moduleData: sessionData.moduleData
-      })
-
-      const client = usersNexusClient.extend(
-        smartSessionUseActions(sessionsModule)
-      )
-
-      // Execute approval
-      const userOpHash = await client.usePermission({
-        calls: [
-          {
-            to: tokenAddress,
-            data: encodeFunctionData({
-              abi: erc20Abi,
-              functionName: "approve",
-              args: [MOCK_POOL_ADDRESS, maxApproval]
-            })
-          }
-        ]
-      })
-
-      console.log(`UserOp hash received for token ${tokenAddress}:`, userOpHash)
-
-      // Wait for UserOp receipt
-      const userOpReceipt = await usersNexusClient.waitForUserOperationReceipt({
-        hash: userOpHash
-      })
-      console.log(`UserOp receipt received for token ${tokenAddress}:`, {
-        success: userOpReceipt.success,
-        txHash: userOpReceipt.receipt.transactionHash
-      })
-
-      // Wait for transaction receipt
-      const txReceipt = await usersNexusClient.waitForTransactionReceipt({
-        hash: userOpReceipt.receipt.transactionHash
-      })
-      console.log(`Transaction receipt received for token ${tokenAddress}:`, {
-        status: txReceipt.status,
-        blockNumber: txReceipt.blockNumber
-      })
-
-      receipts.push({ userOpReceipt, txReceipt })
-    } catch (error) {
-      console.error(`Error approving token ${tokenAddress}:`, error)
-      throw error
-    }
-  }
-
-  return receipts
 }

@@ -1,6 +1,7 @@
 import {
   Sheet,
   SheetContent,
+  SheetFooter,
   SheetHeader,
   SheetTitle
 } from "@/app/components/ui/sheet"
@@ -72,27 +73,6 @@ export function TradingTray({
             </p>
           </SheetHeader>
 
-          <div className="flex flex-col gap-6 mt-6">
-            <div className="space-y-4 w-full justify-center">
-              <AccountLink />
-            </div>
-            <div className="space-y-4 w-full">
-              <Button
-                variant={isBullish ? "bullish" : "bearish"}
-                className="w-full"
-                onClick={grantTradePermission}
-                disabled={status === "enabling" || status === "granting"}
-              >
-                {status === "idle" &&
-                  `Start Auto-Trading ${isBullish ? "Long" : "Short"}`}
-                {(status === "enabling" || status === "granting") &&
-                  "Setting up..."}
-                {status === "granted" && "Ready to Trade"}
-                {status === "error" && "Try Again"}
-              </Button>
-            </div>
-          </div>
-
           {showPermissionStatus && (
             <PermissionStatus
               status={status}
@@ -116,6 +96,28 @@ export function TradingTray({
               </span>
             </div>
           </div>
+
+          <div className="flex flex-col gap-6 mt-6">
+            <div className="space-y-4 w-full justify-center">
+              <AccountLink />
+            </div>
+          </div>
+
+          <SheetFooter className="mt-auto pt-4 border-t border-white/10">
+            <Button
+              variant={isBullish ? "bullish" : "bearish"}
+              className="w-full py-6 text-lg font-semibold hover:scale-[1.02] transition-transform"
+              onClick={grantTradePermission}
+              disabled={status === "enabling" || status === "granting"}
+            >
+              {status === "idle" &&
+                `Start Auto-Trading ${isBullish ? "Long" : "Short"}`}
+              {(status === "enabling" || status === "granting") &&
+                "Setting up..."}
+              {status === "granted" && "Ready to Trade"}
+              {status === "error" && "Try Again"}
+            </Button>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
     </>
