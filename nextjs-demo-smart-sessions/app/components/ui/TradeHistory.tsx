@@ -101,20 +101,6 @@ export function TradeHistory({ isOpen, onOpenChange }: TradeHistoryProps) {
             </SheetTitle>
           </SheetHeader>
 
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-4">
-              <Button
-                variant={isBullish ? "bullish" : "bearish"}
-                className="w-full mt-4"
-                onClick={deactivateAutoTrade}
-                disabled={trades.length === 0}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Stop Auto-Trading
-              </Button>
-            </div>
-          </div>
-
           <HowItWasBuilt
             open={showHowItWasBuilt}
             onOpenChange={setShowHowItWasBuilt}
@@ -124,7 +110,7 @@ export function TradeHistory({ isOpen, onOpenChange }: TradeHistoryProps) {
 
           <ScrollArea
             ref={scrollAreaRef}
-            className="mt-6 w-full max-w-[calc(100vw-2rem)] max-h-[calc(100vh-12rem)]"
+            className="mt-6 w-full max-w-[calc(100vw-2rem)] max-h-[calc(100vh-16rem)]"
           >
             <div className="space-y-3 max-w-full overflow-x-hidden">
               {trades.map((trade) => (
@@ -193,8 +179,17 @@ export function TradeHistory({ isOpen, onOpenChange }: TradeHistoryProps) {
             </div>
           </ScrollArea>
 
-          {/* biome-ignore lint/style/useSelfClosingElements: <explanation> */}
-          <SheetFooter className="mt-auto pt-4 border-t border-white/10"></SheetFooter>
+          <SheetFooter className="mt-auto pt-4 border-t border-white/10">
+            <Button
+              variant={isBullish ? "bullish" : "bearish"}
+              className="w-full py-6 text-lg font-semibold hover:scale-[1.02] transition-transform"
+              onClick={deactivateAutoTrade}
+              disabled={trades.length === 0}
+            >
+              <Trash2 className="mr-2 h-5 w-5" />
+              Stop Auto-Trading
+            </Button>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
     </>

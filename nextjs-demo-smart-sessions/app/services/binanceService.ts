@@ -50,62 +50,57 @@ export class BinanceService {
     mas: MovingAverages[]
     historicCrosses: CrossSignal[]
   }> {
-    try {
-      const response = await fetch(
-        `https://api.binance.com/api/v3/trades?symbol=${this.symbol}&limit=1000`
-      )
-      const trades = await response.json()
+    const response = await fetch(
+      `https://api.binance.com/api/v3/trades?symbol=${this.symbol}&limit=1000`
+    )
+    const trades = await response.json()
 
-      const candleMap = new Map<number, CandlestickData>()
-      const maData: MovingAverages[] = []
-      const historicCrosses: CrossSignal[] = []
+    const candleMap = new Map<number, CandlestickData>()
+    const maData: MovingAverages[] = []
+    const historicCrosses: CrossSignal[] = []
 
-      // biome-ignore lint/complexity/noForEach: <explanation>
-      trades.forEach((trade: any) => {
-        const timestamp = Math.floor(trade.time / 2000) * 2
-        const price = Number.parseFloat(trade.price)
+    // biome-ignore lint/complexity/noForEach: <explanation>
+    trades.forEach((trade: any) => {
+      const timestamp = Math.floor(trade.time / 2000) * 2
+      const price = Number.parseFloat(trade.price)
 
-        if (!candleMap.has(timestamp)) {
-          candleMap.set(timestamp, {
-            time: timestamp as Time,
-            open: price,
-            high: price,
-            low: price,
-            close: price
-          })
+      if (!candleMap.has(timestamp)) {
+        candleMap.set(timestamp, {
+          time: timestamp as Time,
+          open: price,
+          high: price,
+          low: price,
+          close: price
+        })
 
-          // Calculate MAs for each candle
-          const mas = this.updateMovingAverages(price, timestamp)
-          if (mas.shortMA !== null && mas.longMA !== null) {
-            maData.push(mas)
+        // Calculate MAs for each candle
+        const mas = this.updateMovingAverages(price, timestamp)
+        if (mas.shortMA !== null && mas.longMA !== null) {
+          maData.push(mas)
 
-            // Check for crosses
-            const crossSignal = this.crossDetector.update(
-              mas.shortMA,
-              mas.longMA,
-              timestamp
-            )
-            if (crossSignal) {
-              historicCrosses.push(crossSignal)
-            }
+          // Check for crosses
+          const crossSignal = this.crossDetector.update(
+            mas.shortMA,
+            mas.longMA,
+            timestamp
+          )
+          if (crossSignal) {
+            historicCrosses.push(crossSignal)
           }
-        } else {
-          const candle = candleMap.get(timestamp)!
-          candle.high = Math.max(candle.high, price)
-          candle.low = Math.min(candle.low, price)
-          candle.close = price
         }
-      })
+      } else {
+        const candle = candleMap.get(timestamp)!
+        candle.high = Math.max(candle.high, price)
+        candle.low = Math.min(candle.low, price)
+        candle.close = price
+      }
+    })
 
-      const candles = Array.from(candleMap.values()).sort(
-        (a, b) => (a.time as number) - (b.time as number)
-      )
+    const candles = Array.from(candleMap.values()).sort(
+      (a, b) => (a.time as number) - (b.time as number)
+    )
 
-      return { candles, mas: maData, historicCrosses }
-    } catch (error) {
-      console.error("Error fetching historical data:", error)
-      return { candles: [], mas: [], historicCrosses: [] }
-    }
+    return { candles, mas: maData, historicCrosses }
   }
 
   async initializeMovingAverages(): Promise<void> {
