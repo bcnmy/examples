@@ -38,6 +38,97 @@ export function useAutoTrade() {
   const isExecutingRef = useRef(false)
   const [allowed, setAllowed] = useState(false)
 
+  const checkAllowance = async () => {
+    if (!nexusAddress || !sessionData) {
+      console.log("Missing required data:", {
+        nexusAddress,
+        hasSessionData: !!sessionData
+      })
+      return false
+    }
+
+    const publicClient = createPublicClient({
+      chain: baseSepolia,
+      transport: http()
+    })
+
+    // Check if the contract has allowance to spend tokens
+    const [wethAllowance, usdcAllowance] = await Promise.all(
+      [MOCK_WETH_ADDRESS, MOCK_USDC_ADDRESS].map((tokenAddress_) => {
+        return publicClient.readContract({
+          address: tokenAddress_,
+          abi: erc20Abi,
+          functionName: "allowance",
+          args: [nexusAddress, MOCK_POOL_ADDRESS]
+        })
+      })
+    )
+
+    if (wethAllowance === maxUint256 && usdcAllowance === maxUint256) {
+      console.log("Allowances are already set")
+      setAllowed(true)
+    } else {
+      // Call approve route if allowance is not set
+      try {
+        console.log("Requesting approval with:", {
+          userAddress: nexusAddress,
+          hasSessionData: !!sessionData,
+          currentAllowances: {
+            WETH: wethAllowance.toString(),
+            USDC: usdcAllowance.toString()
+          }
+        })
+
+        const response = await fetch("/api/approve", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: stringify({
+            userAddress: nexusAddress,
+            sessionData
+          })
+        })
+
+        // Get the error details if available
+        // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
+        let errorDetails
+        try {
+          errorDetails = await response.json()
+        } catch (e) {
+          errorDetails = await response.text()
+        }
+
+        if (!response.ok) {
+          throw new Error("Just waiting on approvals. Please stick around...")
+        }
+
+        const responseData = errorDetails
+
+        // Wait for transaction receipt if available
+        if (responseData.transactionHash && nexusClient) {
+          await nexusClient.waitForTransactionReceipt({
+            hash: responseData.transactionHash
+          })
+        }
+
+        setAllowed(true)
+      } catch (error) {
+        console.error("Approval failed:", error)
+        const errorMessage =
+          error instanceof Error ? error.message : String(error)
+        toast({
+          title: "Trade Failed",
+          description: errorMessage,
+          variant: "destructive",
+          duration: 5000
+        })
+        setAllowed(false)
+      }
+    }
+  }
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   const executeTrade = useCallback(async () => {
     // Prevent concurrent executions
     if (
@@ -188,96 +279,6 @@ export function useAutoTrade() {
     linkUserOpToTx,
     allowed
   ])
-
-  const checkAllowance = async () => {
-    if (!nexusAddress || !sessionData) {
-      console.log("Missing required data:", {
-        nexusAddress,
-        hasSessionData: !!sessionData
-      })
-      return false
-    }
-
-    const publicClient = createPublicClient({
-      chain: baseSepolia,
-      transport: http()
-    })
-
-    // Check if the contract has allowance to spend tokens
-    const [wethAllowance, usdcAllowance] = await Promise.all(
-      [MOCK_WETH_ADDRESS, MOCK_USDC_ADDRESS].map((tokenAddress_) => {
-        return publicClient.readContract({
-          address: tokenAddress_,
-          abi: erc20Abi,
-          functionName: "allowance",
-          args: [nexusAddress, MOCK_POOL_ADDRESS]
-        })
-      })
-    )
-
-    if (wethAllowance === maxUint256 && usdcAllowance === maxUint256) {
-      console.log("Allowances are already set")
-      setAllowed(true)
-    } else {
-      // Call approve route if allowance is not set
-      try {
-        console.log("Requesting approval with:", {
-          userAddress: nexusAddress,
-          hasSessionData: !!sessionData,
-          currentAllowances: {
-            WETH: wethAllowance.toString(),
-            USDC: usdcAllowance.toString()
-          }
-        })
-
-        const response = await fetch("/api/approve", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: stringify({
-            userAddress: nexusAddress,
-            sessionData
-          })
-        })
-
-        // Get the error details if available
-        // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
-        let errorDetails
-        try {
-          errorDetails = await response.json()
-        } catch (e) {
-          errorDetails = await response.text()
-        }
-
-        if (!response.ok) {
-          throw new Error(`Approval failed: ${JSON.stringify(errorDetails)}`)
-        }
-
-        const responseData = errorDetails
-
-        // Wait for transaction receipt if available
-        if (responseData.transactionHash && nexusClient) {
-          await nexusClient.waitForTransactionReceipt({
-            hash: responseData.transactionHash
-          })
-        }
-
-        setAllowed(true)
-      } catch (error) {
-        console.error("Approval failed:", error)
-        const errorMessage =
-          error instanceof Error ? error.message : String(error)
-        toast({
-          title: "Approval Failed",
-          description: errorMessage,
-          variant: "destructive",
-          duration: 5000
-        })
-        setAllowed(false)
-      }
-    }
-  }
 
   useEffect(() => {
     // Skip if same direction or already executing

@@ -113,69 +113,82 @@ export function TradeHistory({ isOpen, onOpenChange }: TradeHistoryProps) {
             className="mt-6 w-full max-w-[calc(100vw-2rem)] max-h-[calc(100vh-16rem)]"
           >
             <div className="space-y-3 max-w-full overflow-x-hidden">
-              {trades.map((trade) => (
-                <div
-                  key={trade.id}
-                  className="p-3 rounded-lg bg-white/5 border border-white/10 flex gap-2 w-full"
-                >
-                  <div className="flex flex-col gap-2 w-full">
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant={trade.isBullish ? "default" : "destructive"}
-                        className="font-medium"
-                      >
-                        {trade.isBullish ? "BUY" : "SELL"}
-                      </Badge>
-                      <StatusBadge status={trade.status} />
-                    </div>
-
-                    <div className="text-xs space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-white/60">Amount:</span>
-                        <span className="font-medium text-white">
-                          {trade.amount}
-                        </span>
+              {trades.length === 0 ? (
+                <div className="p-6 rounded-lg bg-white/5 border border-white/10 text-center">
+                  <p className="text-white/80 mb-2">No trades yet</p>
+                  <p className="text-sm text-white/60">
+                    Please stay on this page for a moment while we execute your
+                    first trades. The system needs to approve token spending
+                    before trading can begin.
+                  </p>
+                </div>
+              ) : (
+                trades.map((trade) => (
+                  <div
+                    key={trade.id}
+                    className="p-3 rounded-lg bg-white/5 border border-white/10 flex gap-2 w-full"
+                  >
+                    <div className="flex flex-col gap-2 w-full">
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={trade.isBullish ? "default" : "destructive"}
+                          className="font-medium"
+                        >
+                          {trade.isBullish ? "BUY" : "SELL"}
+                        </Badge>
+                        <StatusBadge status={trade.status} />
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <span className="text-white/60">{trade.timestamp}</span>
-                        <div className="flex items-center gap-2">
-                          {trade.status === "confirmed" ? (
-                            <a
-                              href={`https://sepolia.basescan.org/tx/${trade.transactionHash}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
-                            >
-                              View <ExternalLink className="h-3 w-3" />
-                            </a>
-                          ) : trade.error ? (
-                            <div className="flex items-center gap-1 text-red-400">
-                              <AlertCircle className="h-3 w-3" />
-                              <span
-                                className="max-w-[200px] truncate"
-                                title={trade.error}
+                      <div className="text-xs space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-white/60">Amount:</span>
+                          <span className="font-medium text-white">
+                            {trade.amount}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-white/60">
+                            {trade.timestamp}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {trade.status === "confirmed" ? (
+                              <a
+                                href={`https://sepolia.basescan.org/tx/${trade.transactionHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
                               >
-                                {trade.error?.includes("AA24 signature error")
-                                  ? "Invalid signature"
-                                  : trade.error?.includes(
-                                        "Transaction reverted"
-                                      )
-                                    ? "Transaction reverted"
-                                    : "Transaction failed"}
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1 text-green-400">
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            </div>
-                          )}
+                                View <ExternalLink className="h-3 w-3" />
+                              </a>
+                            ) : trade.error ? (
+                              <div className="flex items-center gap-1 text-red-400">
+                                <AlertCircle className="h-3 w-3" />
+                                <span
+                                  className="max-w-[200px] truncate"
+                                  title={trade.error}
+                                >
+                                  {trade.error?.includes("AA24 signature error")
+                                    ? "Invalid signature"
+                                    : trade.error?.includes(
+                                          "Transaction reverted"
+                                        )
+                                      ? "Transaction reverted"
+                                      : "Transaction failed"}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1 text-green-400">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </ScrollArea>
 

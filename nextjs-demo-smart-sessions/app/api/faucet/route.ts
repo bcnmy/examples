@@ -13,12 +13,11 @@ const MOCK_WETH_ADDRESS = MockTokenWETH.address as Hex
 const MOCK_USDC_ABI = MockTokenUSDC.abi
 const MOCK_WETH_ABI = MockTokenWETH.abi
 
-
 const pKey: Hex = `0x${process.env.PRIVATE_KEY}`
 const sessionKeyAccount = privateKeyToAccount(pKey)
 
-export const amountUSDC = 5n * 10n ** 6n
-export const amountWETH = 1n * 10n ** 15n
+const amountUSDC = 5n * 10n ** 6n
+const amountWETH = 1n * 10n ** 15n
 
 export async function POST(request: Request) {
   if (!process.env.PRIVATE_KEY) {

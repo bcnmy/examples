@@ -106,7 +106,7 @@ export async function POST(request: Request) {
     if (error instanceof Error) {
       return NextResponse.json(
         {
-          error: "Approval failed",
+          error: "Trade failed",
           details: error.message,
           cause: error.cause ? String(error.cause) : undefined
         },

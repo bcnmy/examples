@@ -19,7 +19,9 @@ import {
   type SessionData
 } from "@biconomy/sdk"
 import { ApprovalStore } from "@/app/lib/approvalStore"
-import { amountUSDC, amountWETH } from "../faucet/route"
+
+const amountUSDC = 5n * 10n ** 6n
+const amountWETH = 1n * 10n ** 15n
 
 config()
 
