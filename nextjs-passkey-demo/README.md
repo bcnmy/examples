@@ -15,7 +15,7 @@ import { createNexusClient, createBicoPaymasterClient } from '@biconomy/sdk';
 import { baseSepolia } from 'wagmi/chains';
 import { http, useAccount, useWalletClient } from 'wagmi';
 
-const bundlerUrl = process.env.NEXT_PUBLIC_BUNDLER_URL;
+const bundlerUrl = "https://bundler.biconomy.io/api/v3/84532/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44";
 
 const account = useAccount()
 const walletClient = useWalletClient({ account: account.address });
@@ -24,7 +24,7 @@ const nexusClient = await createNexusClient({
     signer: walletClient,
     chain: baseSepolia,
     paymaster: createBicoPaymasterClient({
-        paymasterUrl: process.env.NEXT_PUBLIC_PAYMASTER_URL || "",
+        paymasterUrl: "https://paymaster.biconomy.io/api/v2/84532/F7wyL1clz.75a64804-3e97-41fa-ba1e-33e98c2cc703",
     }),
     transport: http(),
     bundlerTransport: http(bundlerUrl),

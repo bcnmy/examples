@@ -47,7 +47,7 @@ export default function Passkey() {
           chain: baseSepolia,
           index: BigInt(8),
           paymaster: createBicoPaymasterClient({
-            paymasterUrl: process.env.NEXT_PUBLIC_PAYMASTER_URL || "",
+            paymasterUrl: "https://paymaster.biconomy.io/api/v2/84532/F7wyL1clz.75a64804-3e97-41fa-ba1e-33e98c2cc703",
           }),
           transport: http(),
           bundlerTransport: http(bundlerUrl),
@@ -226,7 +226,7 @@ export default function Passkey() {
         chain: baseSepolia,
         index: BigInt(8),
         paymaster: createBicoPaymasterClient({
-          paymasterUrl: process.env.NEXT_PUBLIC_PAYMASTER_URL || "",
+          paymasterUrl: "https://paymaster.biconomy.io/api/v2/84532/F7wyL1clz.75a64804-3e97-41fa-ba1e-33e98c2cc703",
         }),
         transport: http(),
         module: passkeyValidator,
