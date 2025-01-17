@@ -10,7 +10,7 @@ import { K1_VALIDATOR, PASSKEY_VALIDATOR_ADDRESS } from '@/utils/constants/addre
 import { toWebAuthnKey, toPasskeyValidator, WebAuthnMode } from '@biconomy/passkey'
 import { Hex, Address } from 'viem'
 
-const bundlerUrl = process.env.NEXT_PUBLIC_BUNDLER_URL;
+const bundlerUrl = "https://bundler.biconomy.io/api/v3/84532/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44"
 
 export default function Passkey() {
   const account = useAccount()
