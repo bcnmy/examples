@@ -14,6 +14,7 @@ const nextConfig = {
       },
     ];
   },
+  transpilePackages: ['@biconomy/sdk', '@biconomy/passkey']
 };
 
-module.exports = nextConfig;
+export default nextConfig;
