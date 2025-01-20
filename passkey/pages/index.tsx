@@ -68,7 +68,6 @@ export default function Passkey() {
                             authenticatorIdHash: JSON.parse(cachedWebAuthnKey).authenticatorIdHash,
                         }
                         const passkeyValidator = await toPasskeyValidator({
-                            // @ts-expect-error Explicitly ignoring the type error
                             account: nexusClient?.account,
                             webAuthnKey: deFormattedWebAuthnKey,
                         })
