@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
-import { createNexusClient, NexusClient, createBicoPaymasterClient, moduleActivator } from '@biconomy/sdk'
+import { NexusClient, moduleActivator } from '@biconomy/sdk'
 import { toWebAuthnKey, toPasskeyValidator, WebAuthnMode } from '@biconomy/passkey'
-import { Hex, http } from 'viem'
+import { Hex } from 'viem'
 import { createAccount } from '../index'
-import { baseSepolia } from 'viem/chains'
+import { Toaster } from 'react-hot-toast'
 
-const bundlerUrl = "https://bundler.biconomy.io/api/v3/84532/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44"
 const K1_VALIDATOR = "0x00000004171351c442B202678c48D8AB5B321E8f";
 const PASSKEY_VALIDATOR_ADDRESS = "0xD990393C670dCcE8b4d8F858FB98c9912dBFAa06";
 const recipient = "0xf5715961C550FC497832063a98eA34673ad7C816";
@@ -44,25 +43,24 @@ export default function Passkey() {
                 if (isDeployed) {
                     const isInstalled = await nexusClient?.isModuleInstalled({ module: { address: PASSKEY_VALIDATOR_ADDRESS, type: "validator" } });
                     setIsPasskeyInstalled(isInstalled);
-                    setPasskeyName("Bob");
-
-                    // load webAuthnKey from localStorage
-                    const cachedWebAuthnKey = localStorage.getItem('webAuthnKey');
-                    if (cachedWebAuthnKey) {
-                        const deFormattedWebAuthnKey = {
-                            pubX: BigInt(JSON.parse(cachedWebAuthnKey).pubX),
-                            pubY: BigInt(JSON.parse(cachedWebAuthnKey).pubY),
-                            authenticatorId: JSON.parse(cachedWebAuthnKey).authenticatorId,
-                            authenticatorIdHash: JSON.parse(cachedWebAuthnKey).authenticatorIdHash,
-                        }
-                        const passkeyValidator = await toPasskeyValidator({
-                            // @ts-ignore
-                            account: nexusClient?.account,
-                            webAuthnKey: deFormattedWebAuthnKey,
-                        })
-                        setPasskeyValidator(passkeyValidator);
-                        setActivePasskeyName(localStorage.getItem('activePasskeyName') || "");
+                }
+                setPasskeyName("Bob");
+                // load webAuthnKey from localStorage
+                const cachedWebAuthnKey = localStorage.getItem('webAuthnKey');
+                if (cachedWebAuthnKey) {
+                    const deFormattedWebAuthnKey = {
+                        pubX: BigInt(JSON.parse(cachedWebAuthnKey).pubX),
+                        pubY: BigInt(JSON.parse(cachedWebAuthnKey).pubY),
+                        authenticatorId: JSON.parse(cachedWebAuthnKey).authenticatorId,
+                        authenticatorIdHash: JSON.parse(cachedWebAuthnKey).authenticatorIdHash,
                     }
+                    const passkeyValidator = await toPasskeyValidator({
+                        // @ts-ignore
+                        account: nexusClient?.account,
+                        webAuthnKey: deFormattedWebAuthnKey,
+                    })
+                    setPasskeyValidator(passkeyValidator);
+                    setActivePasskeyName(localStorage.getItem('activePasskeyName') || "");
                 }
             } catch (error) {
                 console.error("Error initializing Nexus client:", error);
@@ -160,8 +158,11 @@ export default function Passkey() {
 
     const installPasskeyValidator = async () => {
         setIsLoading(prev => ({ ...prev, install: true }));
+        if (!passkeyValidator) {
+            toast.error('Passkey not initialized');
+            return;
+        }
         try {
-            console.log(nexusClient, "nexusClient");
             const userOpHash = await nexusClient?.installModule({
                 module: {
                     address: PASSKEY_VALIDATOR_ADDRESS,
@@ -170,7 +171,8 @@ export default function Passkey() {
                 },
             })
             console.log(userOpHash, "userOpHash");
-            await nexusClient?.waitForUserOperationReceipt({ hash: userOpHash as Hex });
+            const receipt = await nexusClient?.waitForUserOperationReceipt({ hash: userOpHash as Hex });
+            console.log(receipt, "receipt");
             setIsPasskeyInstalled(true);
         } catch (error) {
             console.error("Error installing passkey validator:", error);
@@ -257,108 +259,341 @@ export default function Passkey() {
     }
 
     return (
-        <div className="container">
-            <div className="main-card">
-                <div className="flex-col">
-                    <div className="card">
-                        <h2 className="card-title">Passkey Management</h2>
-                        {activePasskeyName && passkeyValidator && (
-                            <div className="active-passkey">
-                                <p>Passkey is active</p>
-                            </div>
-                        )}
-                        <div className="input-group">
-                            <label className="input-label">
-                                Passkey Username
-                            </label>
-                            <input
-                                type="text"
-                                value={passkeyName}
-                                onChange={(e) => setPasskeyName(e.target.value)}
-                                className="input"
-                                placeholder="Enter a name for your passkey"
-                            />
-                        </div>
+        <>
+            <style jsx global>{`
+                body {
+                    margin: 0;
+                    padding: 0;
+                    font-family: monospace;
+                }
+
+                * {
+                    box-sizing: border-box;
+                }
+
+                .bg-gradient {
+                    background: linear-gradient(to bottom right, #1a1a1a, #000000);
+                    min-height: 100vh;
+                    color: white;
+                    padding: 1rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .container {
+                    max-width: 64rem;
+                    width: 100%;
+                    background: #1f2937;
+                    border-radius: 0.75rem;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                    overflow: hidden;
+                    padding: 2rem;
+                }
+
+                .flex-col {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1.5rem;
+                    align-items: center;
+                }
+
+                .card {
+                    width: 100%;
+                    max-width: 28rem;
+                    background: #111827;
+                    padding: 1.5rem;
+                    border-radius: 0.5rem;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                }
+
+                .card-title {
+                    font-size: 1.25rem;
+                    font-weight: bold;
+                    margin-bottom: 1rem;
+                    color: #60a5fa;
+                }
+
+                .active-passkey {
+                    margin-bottom: 1rem;
+                    padding: 0.75rem;
+                    background: rgba(59, 130, 246, 0.2);
+                    border-radius: 0.5rem;
+                }
+
+                .active-passkey p {
+                    color: #93c5fd;
+                    font-weight: bold;
+                    margin: 0;
+                }
+
+                .input-group {
+                    margin-bottom: 1rem;
+                }
+
+                .input-label {
+                    display: block;
+                    font-size: 0.875rem;
+                    color: #d1d5db;
+                    margin-bottom: 0.5rem;
+                }
+
+                .input {
+                    width: 100%;
+                    padding: 0.5rem 1rem;
+                    background: #374151;
+                    border: 1px solid #4b5563;
+                    border-radius: 0.5rem;
+                    color: white;
+                    outline: none;
+                }
+
+                .input:focus {
+                    border-color: #60a5fa;
+                    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+                }
+
+                .button {
+                    width: 100%;
+                    padding: 0.75rem 1.5rem;
+                    border-radius: 0.5rem;
+                    font-weight: bold;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.5rem;
+                    transition: all 0.2s;
+                    border: none;
+                    cursor: pointer;
+                    margin-top: 0.75rem;
+                }
+
+                .button:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+
+                .button-blue {
+                    background: #3b82f6;
+                    color: white;
+                }
+
+                .button-blue:hover:not(:disabled) {
+                    background: #2563eb;
+                    transform: scale(1.05);
+                }
+
+                .button-purple {
+                    background: #8b5cf6;
+                    color: white;
+                }
+
+                .button-purple:hover:not(:disabled) {
+                    background: #7c3aed;
+                    transform: scale(1.05);
+                }
+
+                .button-green {
+                    background: #10b981;
+                    color: white;
+                }
+
+                .button-green:hover:not(:disabled) {
+                    background: #059669;
+                    transform: scale(1.05);
+                }
+
+                .button-red {
+                    background: #ef4444;
+                    color: white;
+                }
+
+                .button-red:hover:not(:disabled) {
+                    background: #dc2626;
+                    transform: scale(1.05);
+                }
+
+                .button-yellow {
+                    background: #f59e0b;
+                    color: white;
+                }
+
+                .button-yellow:hover:not(:disabled) {
+                    background: #d97706;
+                    transform: scale(1.05);
+                }
+
+                .spinner {
+                    width: 1.25rem;
+                    height: 1.25rem;
+                    border: 2px solid white;
+                    border-bottom-color: transparent;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+
+                @keyframes spin {
+                    to {
+                        transform: rotate(360deg);
+                    }
+                }
+
+                .validator-list {
+                    list-style: none;
+                    padding: 0;
+                    margin: 0;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.75rem;
+                }
+
+                .validator-item {
+                    padding: 1rem;
+                    background: #1f2937;
+                    border-radius: 0.5rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    transition: background-color 0.2s;
+                }
+
+                .validator-item:hover {
+                    background: #374151;
+                }
+
+                .validator-link {
+                    color: #d1d5db;
+                    text-decoration: none;
+                    font-family: monospace;
+                    font-size: 0.875rem;
+                }
+
+                .validator-link:hover {
+                    color: #60a5fa;
+                }
+
+                .badge {
+                    padding: 0.25rem 0.75rem;
+                    border-radius: 9999px;
+                    font-size: 0.875rem;
+                    font-weight: 600;
+                    color: white;
+                }
+
+                .badge-blue {
+                    background: #3b82f6;
+                }
+
+                .badge-green {
+                    background: #10b981;
+                }
+            `}</style>
+            <div className="bg-gradient">
+                <div className="container">
+                    <div className="main-card">
                         <div className="flex-col">
-                            <button
-                                onClick={registerPasskey}
-                                disabled={isLoading.register}
-                                className="button button-blue"
-                            >
-                                {isLoading.register ? (
-                                    <div className="spinner" />
-                                ) : "Create new passkey"}
-                            </button>
-                            {!passkeyValidator && (
+                            <div className="card">
+                                <h2 className="card-title">Passkey Management</h2>
+                                {activePasskeyName && passkeyValidator && (
+                                    <div className="active-passkey">
+                                        <p>Passkey is active</p>
+                                    </div>
+                                )}
+                                <div className="input-group">
+                                    <label className="input-label">
+                                        Passkey Username
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={passkeyName}
+                                        onChange={(e) => setPasskeyName(e.target.value)}
+                                        className="input"
+                                        placeholder="Enter a name for your passkey"
+                                    />
+                                </div>
+                                <div className="flex-col">
+                                    <button
+                                        onClick={registerPasskey}
+                                        disabled={isLoading.register}
+                                        className="button button-blue"
+                                    >
+                                        {isLoading.register ? (
+                                            <div className="spinner" />
+                                        ) : "Create new passkey"}
+                                    </button>
+                                    {!passkeyValidator && (
+                                        <button
+                                            onClick={loginPasskey}
+                                            disabled={isLoading.login}
+                                            className="button button-purple"
+                                        >
+                                            {isLoading.login ? (
+                                                <div className="spinner" />
+                                            ) : "Use existing passkey"}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="card">
+                                <h2 className="card-title">Nexus Actions</h2>
+                                {isPasskeyInstalled === false ? (
+                                    <button
+                                        onClick={() => installPasskeyValidator()}
+                                        // disabled={isLoading.install || !activePasskeyName}
+                                        className="button button-green"
+                                    >
+                                        {isLoading.install ? (
+                                            <div className="spinner" />
+                                        ) : "Install Passkey"}
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => uninstallPasskeyValidator()}
+                                        disabled={isLoading.uninstall}
+                                        className="button button-red"
+                                    >
+                                        {isLoading.uninstall ? (
+                                            <div className="spinner" />
+                                        ) : "Uninstall Passkey Module"}
+                                    </button>
+                                )}
                                 <button
-                                    onClick={loginPasskey}
-                                    disabled={isLoading.login}
-                                    className="button button-purple"
+                                    onClick={() => sendUserOpWithPasskeyValidator()}
+                                    disabled={isLoading.sendOp || !activePasskeyName}
+                                    className="button button-yellow"
                                 >
-                                    {isLoading.login ? (
+                                    {isLoading.sendOp ? (
                                         <div className="spinner" />
-                                    ) : "Use existing passkey"}
+                                    ) : "Send UserOp"}
                                 </button>
-                            )}
+                            </div>
+
+                            <div className="card">
+                                <h2 className="card-title">Installed Validators</h2>
+                                {installedValidators && (
+                                    <ul className="validator-list">
+                                        {installedValidators.map((validator) => (
+                                            <li key={validator} className="validator-item">
+                                                <a href={`https://sepolia.basescan.org/address/${validator}`} target="_blank" rel="noopener noreferrer" className="validator-link">
+                                                    {validator.slice(0, 6)}...{validator.slice(-4)}
+                                                </a>
+                                                {validator === "0xD990393C670dCcE8b4d8F858FB98c9912dBFAa06" &&
+                                                    <span className="badge badge-blue">Passkey</span>
+                                                }
+                                                {validator === "0x00000004171351c442B202678c48D8AB5B321E8f" &&
+                                                    <span className="badge badge-green">K1</span>
+                                                }
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
                         </div>
-                    </div>
-
-                    <div className="card">
-                        <h2 className="card-title">Nexus Actions</h2>
-                        {isPasskeyInstalled === false ? (
-                            <button
-                                onClick={() => installPasskeyValidator()}
-                                // disabled={isLoading.install || !activePasskeyName}
-                                className="button button-green"
-                            >
-                                {isLoading.install ? (
-                                    <div className="spinner" />
-                                ) : "Install Passkey"}
-                            </button>
-                        ) : (
-                            <button
-                                onClick={() => uninstallPasskeyValidator()}
-                                disabled={isLoading.uninstall}
-                                className="button button-red"
-                            >
-                                {isLoading.uninstall ? (
-                                    <div className="spinner" />
-                                ) : "Uninstall Passkey Module"}
-                            </button>
-                        )}
-                        <button
-                            onClick={() => sendUserOpWithPasskeyValidator()}
-                            disabled={isLoading.sendOp || !activePasskeyName}
-                            className="button button-yellow"
-                        >
-                            {isLoading.sendOp ? (
-                                <div className="spinner" />
-                            ) : "Send UserOp"}
-                        </button>
-                    </div>
-
-                    <div className="card">
-                        <h2 className="card-title">Installed Validators</h2>
-                        {installedValidators && (
-                            <ul className="validator-list">
-                                {installedValidators.map((validator) => (
-                                    <li key={validator} className="validator-item">
-                                        <a href={`https://sepolia.basescan.org/address/${validator}`} target="_blank" rel="noopener noreferrer" className="validator-link">
-                                            {validator.slice(0, 6)}...{validator.slice(-4)}
-                                        </a>
-                                        {validator === "0xD990393C670dCcE8b4d8F858FB98c9912dBFAa06" &&
-                                            <span className="badge badge-blue">Passkey</span>
-                                        }
-                                        {validator === "0x00000004171351c442B202678c48D8AB5B321E8f" &&
-                                            <span className="badge badge-green">K1</span>
-                                        }
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
                     </div>
                 </div>
             </div>
-        </div>
+            <Toaster />
+        </>
     )
 }

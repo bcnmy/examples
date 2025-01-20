@@ -5,7 +5,7 @@ import { http } from "viem";
 
 const privateKey = generatePrivateKey();
 const paymasterUrl =
-  'https://paymaster.biconomy.io/api/v2/84532/F7wyL1clz.75a64804-3e97-41fa-ba1e-33e98c2cc703';
+  'https://paymaster.biconomy.io/api/v2/84532/9YTUGYitn.73ea1313-001c-4382-bf9b-8bb2f1f92b2a';
 const bundlerUrl = "https://bundler.biconomy.io/api/v3/84532/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44"
 
 export const createAccount = async () => {
