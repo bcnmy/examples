@@ -170,9 +170,7 @@ export default function Passkey() {
                     initData: passkeyValidator?.initData
                 },
             })
-            console.log(userOpHash, "userOpHash");
             const receipt = await nexusClient?.waitForUserOperationReceipt({ hash: userOpHash as Hex });
-            console.log(receipt, "receipt");
             setIsPasskeyInstalled(true);
         } catch (error) {
             console.error("Error installing passkey validator:", error);
