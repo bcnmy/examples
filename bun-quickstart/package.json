@@ -3,12 +3,15 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "dev": "bun run index.ts"
+    "dev": "bun run index.ts -- --execution-environment=4337",
+    "dev:mee": "bun run index.ts -- --execution-environment=mee"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "typescript": "^5.0.0",
+    "@types/bun": "latest"  
   },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
+  "dependencies": {
+    "@biconomy/abstractjs": "latest",
+    "viem": "^2.0.0"
   }
 }
