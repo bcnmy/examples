@@ -1,0 +1,43 @@
+"use client"
+
+import { IBM_Plex_Mono } from "next/font/google"
+import "./globals.css"
+import { RainbowKitProvider } from "@rainbow-me/rainbowkit"
+import { WagmiProvider } from "wagmi"
+import { optimismSepolia } from "wagmi/chains"
+import { config } from "./config/wallet"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import "@rainbow-me/rainbowkit/styles.css"
+import { Toaster } from "./components/ui/toaster"
+
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap"
+})
+
+// Create QueryClient outside of component
+const queryClient = new QueryClient()
+
+export default function RootLayout({
+  children
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body
+        className={`${ibmPlexMono.className} bg-slate-900 text-slate-200 transition-colors duration-300 bg-black bg-circuit-pattern min-h-screen`}
+      >
+        <QueryClientProvider client={queryClient}>
+          <WagmiProvider config={config}>
+            <RainbowKitProvider initialChain={optimismSepolia}>
+              {children}
+            </RainbowKitProvider>
+          </WagmiProvider>
+        </QueryClientProvider>
+        <Toaster />
+      </body>
+    </html>
+  )
+}

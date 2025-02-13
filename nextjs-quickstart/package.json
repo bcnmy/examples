@@ -9,12 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@biconomy/sdk": "^0.0.7",
+    "@biconomy/abstractjs": "^0.0.35",
+    "@rhinestone/module-sdk": "0.2.3",
     "dotenv": "^16.4.5",
     "next": "14.2.14",
     "react": "^18",
     "react-dom": "^18",
-    "viem": "^2.21.18"
+    "viem": "^2.21.6"
   },
   "devDependencies": {
     "@types/node": "^20",

@@ -33,7 +33,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-  ],
+, "app/hooks/use-multichain-balancets"  ],
   "exclude": [
     "node_modules",
     "contracts"
