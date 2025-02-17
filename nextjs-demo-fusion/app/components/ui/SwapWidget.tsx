@@ -5,11 +5,7 @@ import { Input } from "./input"
 import { ChevronDown, Loader2 } from "lucide-react"
 import { useSwap } from "@/app/hooks/use-swap"
 import Image from "next/image"
-import {
-  getChain,
-  getMeeScanLink,
-  type WaitForSupertransactionReceiptPayload
-} from "@biconomy/abstractjs-canary"
+import { getMeeScanLink } from "@biconomy/abstractjs"
 import { useToast } from "@/app/hooks/use-toast"
 import Link from "next/link"
 import { Link as LinkFromLucide } from "lucide-react"
@@ -23,7 +19,10 @@ import {
 import { useMultichainNexus } from "@/app/hooks/use-multichain-nexus"
 import type { BalancePayload } from "../../hooks/use-erc20-balance"
 import { TokenBalance } from "../TokenBalance"
-const MINIMUM_ACROSS_TRANSFER = 4.5
+import { FaucetButton } from "./FaucetButton"
+import { SuperTransactionStatus } from "../SuperTransactionStatus"
+
+const MINIMUM_ACROSS_TRANSFER = 4.75
 
 type SwapWidgetProps = {
   usdcBalance: BalancePayload
@@ -33,17 +32,14 @@ type SwapWidgetProps = {
 export function SwapWidget({ usdcBalance, fusionBalance }: SwapWidgetProps) {
   const { mcNexus, mcNexusAddress, meeClient } = useMultichainNexus()
   const { toast } = useToast()
-  const [inputAmount, setInputAmount] = useState<string>("4.5")
+  const [inputAmount, setInputAmount] = useState<string>("4.75")
   const [outputAmount, setOutputAmount] = useState<string>("0")
-  const [receipt, setReceipt] = useState<
-    WaitForSupertransactionReceiptPayload | undefined
-  >(undefined)
 
   useEffect(() => {
     setOutputAmount(inputAmount)
   }, [inputAmount])
 
-  const sellAmount = BigInt(+inputAmount * 10) * BigInt(10 ** 5)
+  const sellAmount = BigInt(+inputAmount * 100) * BigInt(10 ** 4)
   const minimumNotMet =
     !!inputAmount && Number(inputAmount) < MINIMUM_ACROSS_TRANSFER
   const maximumExceeded =
@@ -58,43 +54,9 @@ export function SwapWidget({ usdcBalance, fusionBalance }: SwapWidgetProps) {
   })
 
   useEffect(() => {
-    if (receipt && receipt.explorerLinks.length > 0) {
-      toast({
-        title: "Transaction Submitted",
-        description: (
-          <div className="flex items-center">
-            {receipt.explorerLinks.map((link: string, index: number) => (
-              <Link
-                key={link}
-                href={link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={"flex items-center"}
-              >
-                <LinkFromLucide className="mr-2 h-3 w-3" />
-                {getChain(Number(receipt?.userOps?.[index]?.chainId) ?? 0).name}
-              </Link>
-            ))}
-          </div>
-        )
-      })
-    }
-  }, [receipt, toast])
-
-  useEffect(() => {
-    async function getUrls() {
-      if (!hash || !meeClient) return
-      const receipt = await meeClient.waitForSupertransactionReceipt({ hash })
-      setReceipt(receipt)
-    }
-
-    if (hash) getUrls()
-  }, [hash, meeClient])
-
-  useEffect(() => {
     if (hash) {
       toast({
-        title: "Transaction Submitted",
+        title: "Transactions Submitted",
         description: (
           <div className="flex items-center">
             <Link
@@ -114,8 +76,8 @@ export function SwapWidget({ usdcBalance, fusionBalance }: SwapWidgetProps) {
 
   return (
     <div className="p-2 sm:p-4 w-full min-w-[320px] sm:min-w-[400px] max-w-[400px] flex flex-col items-center gap-2 sm:gap-4">
-      <div className="w-full">
-        <ConnectButton />
+      <div className="w-full flex items-center justify-between">
+        <ConnectButton /> <FaucetButton />
       </div>
       <Card className="w-full p-3 sm:p-4 flex flex-col items-center gap-3 sm:gap-4">
         <div className="space-y-2 w-full">
@@ -125,7 +87,7 @@ export function SwapWidget({ usdcBalance, fusionBalance }: SwapWidgetProps) {
               <TokenBalance balances={[usdcBalance]} />
               <DropdownMenu>
                 <DropdownMenuTrigger className="text-sm text-gray-500 focus:outline-none font-medium">
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-1">
                     <Image
                       src="/op.svg?v=25.1.4.0"
                       alt="Op Sepolia"
@@ -160,7 +122,7 @@ export function SwapWidget({ usdcBalance, fusionBalance }: SwapWidgetProps) {
               min={Number(MINIMUM_ACROSS_TRANSFER)}
             />
             <div className="absolute right-3 flex items-center space-x-2">
-              <span className="font-medium">USDC</span>
+              <span className="font-medium text-sm text-gray-500">USDC</span>
             </div>
           </div>
         </div>
@@ -172,7 +134,7 @@ export function SwapWidget({ usdcBalance, fusionBalance }: SwapWidgetProps) {
               <TokenBalance balances={[fusionBalance]} />
               <DropdownMenu>
                 <DropdownMenuTrigger className="text-sm text-gray-500 focus:outline-none">
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-1">
                     <Image
                       src="/base.png"
                       alt="Base Sepolia"
@@ -204,7 +166,7 @@ export function SwapWidget({ usdcBalance, fusionBalance }: SwapWidgetProps) {
               disabled
             />
             <div className="absolute right-3 flex items-center space-x-2">
-              <span className="font-medium">FUSION</span>
+              <span className="font-medium text-sm text-gray-500">FUSION</span>
             </div>
           </div>
         </div>
@@ -223,16 +185,13 @@ export function SwapWidget({ usdcBalance, fusionBalance }: SwapWidgetProps) {
             minimumNotMet ||
             maximumExceeded
           }
-          variant="default"
         >
           {minimumNotMet ? (
             <span className="text-sm">
               Minimum swap is {Number(MINIMUM_ACROSS_TRANSFER)} USDC
             </span>
           ) : maximumExceeded ? (
-            <span className="text-sm">
-              Maximum swap is {Number(usdcBalance.balance) / 10 ** 6} USDC
-            </span>
+            <span className="text-sm">Insufficient funds</span>
           ) : isLoading ? (
             <>
               Swapping...
@@ -243,6 +202,7 @@ export function SwapWidget({ usdcBalance, fusionBalance }: SwapWidgetProps) {
           )}
         </Button>
       </Card>
+      <SuperTransactionStatus meeClient={meeClient} hash={hash} />
     </div>
   )
 }

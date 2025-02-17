@@ -115,3 +115,19 @@ body {
   to { opacity: 1; }
 }
 
+@keyframes pulse-once {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-pulse-once {
+  animation: pulse-once 0.5s ease-in-out;
+}
+

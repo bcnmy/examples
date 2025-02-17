@@ -11,8 +11,12 @@ export function TokenBalance({ balances }: TokenBalanceParameters) {
     <div className="flex gap-2">
       {balances.map(({ balance, chain, symbol }) => {
         return (
-          <Badge key={`${chain.id}-${symbol}-${balance}`} variant="outline">
-            {Math.round(+formatUnits(balance ?? 0n, 6))}{" "}
+          <Badge
+            key={`${chain.id}-${symbol}-${balance}`}
+            variant="outline"
+            className="animate-pulse-once"
+          >
+            {(+formatUnits(balance ?? 0n, 6)).toFixed(2)}{" "}
             {symbol.substring(0, 4)}
           </Badge>
         )

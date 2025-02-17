@@ -3,7 +3,7 @@ import {
   toMultichainNexusAccount,
   createMeeClient,
   type MeeClient
-} from "@biconomy/abstractjs-canary"
+} from "@biconomy/abstractjs"
 import { useEffect, useState } from "react"
 import { custom, http, useAccount } from "wagmi"
 import { baseSepolia, optimismSepolia } from "wagmi/chains"

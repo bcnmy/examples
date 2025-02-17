@@ -4,17 +4,13 @@ import { baseSepolia, optimismSepolia } from "viem/chains"
 import {
   type MeeClient,
   type MultichainSmartAccount,
-  testnetMcFusion,
-  testnetMcUniswapSwapRouter,
-  testnetMcUSDC,
   safeMultiplier,
   LARGE_DEFAULT_GAS_LIMIT
-} from "@biconomy/abstractjs-canary"
+} from "@biconomy/abstractjs"
 import { useAccount } from "wagmi"
-
-const ROUTER_ADDRESS = testnetMcUniswapSwapRouter.addressOn(baseSepolia.id)
-const TOKEN0_ADDRESS = testnetMcUSDC.addressOn(baseSepolia.id)
-const TOKEN1_ADDRESS = testnetMcFusion.addressOn(baseSepolia.id)
+import { mcUSDC } from "../config/USDC"
+import { mcFusion } from "../config/fusion"
+import { uniswapSwapRouter } from "../config/uniswapRouter"
 
 export type UseSwapProps = {
   mcNexusAddress: Hex | null
@@ -35,7 +31,8 @@ export function useSwap({
   const [hash, setHash] = useState<Hex | null>(null)
   const [success, setSuccess] = useState(false)
 
-  console.log({ sellAmount })
+  const usdc = mcUSDC.addressOn(baseSepolia.id)
+  const fuse = mcFusion.addressOn(baseSepolia.id)
 
   const swap = useCallback(async () => {
     if (
@@ -56,7 +53,7 @@ export function useSwap({
     try {
       const trigger = {
         chainId: optimismSepolia.id,
-        tokenAddress: testnetMcUSDC.addressOn(optimismSepolia.id),
+        tokenAddress: mcUSDC.addressOn(optimismSepolia.id),
         amount: sellAmount
       }
 
@@ -64,7 +61,7 @@ export function useSwap({
         type: "intent",
         data: {
           amount: sellAmount,
-          mcToken: testnetMcUSDC,
+          mcToken: mcUSDC,
           toChain: baseSepolia,
           mode: "OPTIMISTIC"
         }
@@ -75,25 +72,25 @@ export function useSwap({
         data: {
           amount: sellAmount,
           chainId: baseSepolia.id,
-          tokenAddress: TOKEN0_ADDRESS,
-          spender: ROUTER_ADDRESS
+          tokenAddress: usdc,
+          spender: uniswapSwapRouter.addressOn(baseSepolia.id)
         }
       })
 
-      const swap = testnetMcUniswapSwapRouter.build({
+      const swap = uniswapSwapRouter.build({
         type: "exactInputSingle",
         data: {
           chainId: baseSepolia.id,
           args: [
             {
-              tokenIn: TOKEN0_ADDRESS,
-              tokenOut: TOKEN1_ADDRESS,
+              tokenIn: usdc,
+              tokenOut: fuse,
               fee: 3000,
-              recipient: mcNexus.addressOn(baseSepolia.id, true),
-              // @ts-expect-error: deadline is not a required field
+              recipient: account.address,
+              // @ts-expect-error: deadline not expected
               deadline: BigInt(Math.floor(Date.now() / 1000) + 900),
-              amountIn: sellAmount,
-              amountOutMinimum: 0n,
+              amountIn: safeMultiplier(sellAmount, 0.8), // Composability coming soon...
+              amountOutMinimum: 1n,
               sqrtPriceLimitX96: 0n
             }
           ],
@@ -102,28 +99,26 @@ export function useSwap({
         }
       })
 
-      const withdraw = mcNexus.build({
-        type: "withdrawal",
+      const approveAndSwap = mcNexus.build({
+        type: "batch",
         data: {
-          amount: safeMultiplier(sellAmount, 0.95), // Composability coming soon...
-          chainId: baseSepolia.id,
-          tokenAddress: TOKEN1_ADDRESS
+          instructions: [approval, swap]
         }
       })
 
       const feeToken = {
-        address: testnetMcUSDC.addressOn(optimismSepolia.id),
+        address: mcUSDC.addressOn(optimismSepolia.id),
         chainId: optimismSepolia.id
       }
 
       const fusionQuote = await meeClient.getFusionQuote({
         trigger,
-        // @ts-expect-error: instructions is not a required field
-        instructions: [intent, approval, swap, withdraw],
+        instructions: [intent, approveAndSwap],
         feeToken
       })
 
       const { hash } = await meeClient.executeFusionQuote({ fusionQuote })
+
       setHash(hash)
       setSuccess(true)
     } catch (err) {
@@ -134,7 +129,7 @@ export function useSwap({
     } finally {
       setIsLoading(false)
     }
-  }, [mcNexusAddress, mcNexus, sellAmount, account, meeClient])
+  }, [mcNexusAddress, mcNexus, sellAmount, account, meeClient, usdc, fuse])
 
   return {
     swap,

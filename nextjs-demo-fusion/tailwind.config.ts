@@ -48,6 +48,10 @@ const config: Config = {
         }
       },
       keyframes: {
+        "pulse-once": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.5" }
+        },
         "flash-glow": {
           "0%": { opacity: "1", filter: "brightness(1)" },
           "15%": { opacity: "1", filter: "brightness(1.2)" },
@@ -59,7 +63,8 @@ const config: Config = {
         }
       },
       animation: {
-        "flash-glow": "flash-glow 1s ease-in-out"
+        "flash-glow": "flash-glow 1s ease-in-out",
+        "pulse-once": "pulse-once 0.5s ease-in-out"
       },
       borderRadius: {
         lg: "var(--radius)",

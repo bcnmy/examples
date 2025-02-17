@@ -2,15 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { useAccount } from "wagmi"
-import { testnetMcFusion, testnetMcUSDC } from "@biconomy/abstractjs-canary"
 import { SwapWidget } from "./components/ui/SwapWidget"
 import { useERC20Balance } from "./hooks/use-erc20-balance"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { LoadingWidget } from "./components/LoadingWidget"
 import { FaucetSection } from "./components/FaucetSection"
 import { baseSepolia, optimismSepolia } from "viem/chains"
-
-const MINIMUM_ACROSS_TRANSFER = 4.5
+import { mcUSDC } from "./config/USDC"
+import { mcFusion } from "./config/fusion"
 
 export default function Home() {
   const { isConnected, address } = useAccount()
@@ -18,14 +17,14 @@ export default function Home() {
   const usdcBalance = useERC20Balance({
     chain: optimismSepolia,
     address,
-    mcToken: testnetMcUSDC,
+    mcToken: mcUSDC,
     symbol: "USDC"
   })
 
   const fusionBalance = useERC20Balance({
     chain: baseSepolia,
     address,
-    mcToken: testnetMcFusion,
+    mcToken: mcFusion,
     symbol: "FUSE"
   })
 
@@ -44,17 +43,13 @@ export default function Home() {
       return
     }
 
-    if (
-      usdcBalance.balance &&
-      usdcBalance.balance >
-        BigInt(MINIMUM_ACROSS_TRANSFER * 10) * BigInt(10 ** 5)
-    ) {
+    if (usdcBalance.balance && usdcBalance.balance > 0n) {
       setState("funded")
       return
     }
 
     setState("not-funded")
-  }, [isConnected, usdcBalance.balance, usdcBalance.isLoading])
+  }, [isConnected, usdcBalance.balance, usdcBalance.isLoading, usdcBalance])
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-4 justify-center items-center h-[calc(100vh-160px)]">
