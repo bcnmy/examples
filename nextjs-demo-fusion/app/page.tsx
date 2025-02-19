@@ -7,29 +7,28 @@ import { useERC20Balance } from "./hooks/use-erc20-balance"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { LoadingWidget } from "./components/LoadingWidget"
 import { FaucetSection } from "./components/FaucetSection"
-import { baseSepolia, optimismSepolia } from "viem/chains"
-import { mcUSDC } from "./config/USDC"
-import { mcFusion } from "./config/fusion"
-
+import { useNetworkData } from "./hooks/use-network-data"
+import { NetworkToggle } from "./components/ui/NetworkToggle"
+import { FaucetButton } from "./components/ui/FaucetButton"
 export default function Home() {
   const { isConnected, address } = useAccount()
+  const { sourceChain, destinationChain, inToken, outToken, mode } =
+    useNetworkData()
 
   const usdcBalance = useERC20Balance({
-    chain: optimismSepolia,
+    chain: sourceChain,
     address,
-    mcToken: mcUSDC,
-    symbol: "USDC"
+    mcToken: inToken
   })
 
-  const fusionBalance = useERC20Balance({
-    chain: baseSepolia,
+  const outTokenBalance = useERC20Balance({
+    chain: destinationChain,
     address,
-    mcToken: mcFusion,
-    symbol: "FUSE"
+    mcToken: outToken
   })
 
   const [state, setState] = useState<
-    "funded" | "not-funded" | "loading" | "not-connected"
+    "funded" | "show-faucet" | "loading" | "not-connected"
   >("loading")
 
   useEffect(() => {
@@ -43,35 +42,46 @@ export default function Home() {
       return
     }
 
-    if (usdcBalance.balance && usdcBalance.balance > 0n) {
+    if (
+      (mode && mode === "mainnet") ||
+      (usdcBalance.balance && usdcBalance.balance > 0n)
+    ) {
       setState("funded")
       return
     }
 
-    setState("not-funded")
-  }, [isConnected, usdcBalance.balance, usdcBalance.isLoading, usdcBalance])
+    setState("show-faucet")
+  }, [
+    isConnected,
+    usdcBalance.balance,
+    usdcBalance.isLoading,
+    usdcBalance,
+    mode
+  ])
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-4 justify-center items-center h-[calc(100vh-160px)]">
-      {(() => {
-        switch (state) {
-          case "not-funded":
-            return <FaucetSection eoaAddress={address} />
-          case "funded":
-            return (
-              <SwapWidget
-                usdcBalance={usdcBalance}
-                fusionBalance={fusionBalance}
-              />
-            )
-          case "loading":
-            return <LoadingWidget />
-          case "not-connected":
-            return <ConnectButton />
-          default:
-            return <ConnectButton />
-        }
-      })()}
-    </div>
+    <main className="min-h-screen w-full flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-3xl flex flex-col gap-4 justify-center items-center">
+        {(() => {
+          switch (state) {
+            case "show-faucet":
+              return <FaucetSection eoaAddress={address} />
+            case "funded":
+              return (
+                <SwapWidget
+                  usdcBalance={usdcBalance}
+                  outTokenBalance={outTokenBalance}
+                />
+              )
+            case "loading":
+              return <LoadingWidget />
+            case "not-connected":
+              return <ConnectButton />
+            default:
+              return <ConnectButton />
+          }
+        })()}
+      </div>
+    </main>
   )
 }

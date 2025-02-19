@@ -2,10 +2,9 @@ import { useEffect, useState } from "react"
 import type { Address, Chain } from "viem"
 import { useBlockNumber } from "wagmi"
 import { createPublicClient, erc20Abi, http } from "viem"
-import type { MultichainToken } from "@biconomy/abstractjs"
+import type { MultichainToken } from "@biconomy/abstractjs-canary"
 
 interface UseERC20BalanceProps {
-  symbol: string
   address?: Address
   mcToken: MultichainToken
   chain: Chain
@@ -20,7 +19,6 @@ export type BalancePayload = {
 }
 
 export function useERC20Balance({
-  symbol,
   address,
   mcToken,
   chain
@@ -29,6 +27,7 @@ export function useERC20Balance({
   const [balance, setBalance] = useState<bigint | undefined>()
   const [error, setError] = useState<Error | null>(null)
   const { data: bNum } = useBlockNumber({ watch: true })
+  const [symbol, setSymbol] = useState<string>("UNK")
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
@@ -39,16 +38,28 @@ export function useERC20Balance({
       }
 
       try {
-        const rawBalance = await createPublicClient({
+        const publicClient = createPublicClient({
           chain,
           transport: http()
-        }).readContract({
-          address: token,
-          abi: erc20Abi,
-          functionName: "balanceOf",
-          args: [address]
         })
 
+        const [rawBalance, symbol] = await Promise.all([
+          publicClient.readContract({
+            address: token,
+            abi: erc20Abi,
+            functionName: "balanceOf",
+            args: [address]
+          }),
+          publicClient.readContract({
+            address: token,
+            abi: erc20Abi,
+            functionName: "symbol"
+          })
+        ])
+
+        // const symbol = await mcToken.deploymentOn(chain.id).symbol()
+
+        setSymbol(symbol)
         setBalance(rawBalance)
         setError(null)
       } catch (err) {

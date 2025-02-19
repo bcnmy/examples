@@ -3,13 +3,13 @@ import {
   toMultichainNexusAccount,
   createMeeClient,
   type MeeClient
-} from "@biconomy/abstractjs"
+} from "@biconomy/abstractjs-canary"
 import { useEffect, useState } from "react"
 import { custom, http, useAccount } from "wagmi"
-import { baseSepolia, optimismSepolia } from "wagmi/chains"
 import { type Address, createWalletClient } from "viem"
-
+import { useNetworkData } from "./use-network-data"
 export function useMultichainNexus() {
+  const { sourceChain, destinationChain, mode } = useNetworkData()
   const [mcNexus, setMcNexus] = useState<MultichainSmartAccount | null>(null)
   const [mcNexusAddress, setMcNexusAddress] = useState<Address | null>(null)
   const [meeClient, setMeeClient] = useState<MeeClient | null>(null)
@@ -22,6 +22,7 @@ export function useMultichainNexus() {
     }
   }, [isConnected, mcNexus])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     async function connect() {
       if (
@@ -32,7 +33,7 @@ export function useMultichainNexus() {
         chain?.id
       ) {
         const mcNexus = await toMultichainNexusAccount({
-          chains: [optimismSepolia, baseSepolia],
+          chains: [sourceChain, destinationChain],
           transports: [http(), http()],
           signer: createWalletClient({
             chain,
@@ -48,7 +49,15 @@ export function useMultichainNexus() {
     }
 
     connect()
-  }, [isConnected, address, chain, mcNexus])
+  }, [
+    isConnected,
+    address,
+    chain,
+    mcNexus,
+    sourceChain,
+    destinationChain,
+    mode
+  ])
 
   return {
     address,
