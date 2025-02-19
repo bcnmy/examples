@@ -1,4 +1,4 @@
-import { getMultichainContract } from "@biconomy/abstractjs"
+import { getMultichainContract } from "@biconomy/abstractjs-canary"
 import { erc20Abi } from "viem"
 import { baseSepolia } from "viem/chains"
 

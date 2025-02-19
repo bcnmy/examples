@@ -12,7 +12,7 @@ import {
   getExplorerTxLink,
   getChain,
   getMeeScanLink
-} from "@biconomy/abstractjs"
+} from "@biconomy/abstractjs-canary"
 import type { Hex } from "viem"
 import { useEffect, useState } from "react"
 import React from "react"

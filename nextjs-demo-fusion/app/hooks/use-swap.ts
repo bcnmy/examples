@@ -1,17 +1,13 @@
 import { useState, useCallback } from "react"
 import type { Hex } from "viem"
-import { baseSepolia, optimismSepolia } from "viem/chains"
 import {
   type MeeClient,
   type MultichainSmartAccount,
   safeMultiplier,
   LARGE_DEFAULT_GAS_LIMIT
-} from "@biconomy/abstractjs"
+} from "@biconomy/abstractjs-canary"
 import { useAccount } from "wagmi"
-import { mcUSDC } from "../config/USDC"
-import { mcFusion } from "../config/fusion"
-import { uniswapSwapRouter } from "../config/uniswapRouter"
-
+import { useNetworkData } from "./use-network-data"
 export type UseSwapProps = {
   mcNexusAddress: Hex | null
   mcNexus: MultichainSmartAccount | null
@@ -31,9 +27,16 @@ export function useSwap({
   const [hash, setHash] = useState<Hex | null>(null)
   const [success, setSuccess] = useState(false)
 
-  const usdc = mcUSDC.addressOn(baseSepolia.id)
-  const fuse = mcFusion.addressOn(baseSepolia.id)
+  const {
+    sourceChain,
+    destinationChain,
+    inToken,
+    outToken,
+    uniswapRouter,
+    mode
+  } = useNetworkData()
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   const swap = useCallback(async () => {
     if (
       !mcNexus ||
@@ -52,8 +55,8 @@ export function useSwap({
 
     try {
       const trigger = {
-        chainId: optimismSepolia.id,
-        tokenAddress: mcUSDC.addressOn(optimismSepolia.id),
+        chainId: sourceChain.id,
+        tokenAddress: inToken.addressOn(sourceChain.id),
         amount: sellAmount
       }
 
@@ -61,8 +64,8 @@ export function useSwap({
         type: "intent",
         data: {
           amount: sellAmount,
-          mcToken: mcUSDC,
-          toChain: baseSepolia,
+          mcToken: inToken,
+          toChain: destinationChain,
           mode: "OPTIMISTIC"
         }
       })
@@ -71,20 +74,20 @@ export function useSwap({
         type: "approve",
         data: {
           amount: sellAmount,
-          chainId: baseSepolia.id,
-          tokenAddress: usdc,
-          spender: uniswapSwapRouter.addressOn(baseSepolia.id)
+          chainId: destinationChain.id,
+          tokenAddress: inToken.addressOn(destinationChain.id),
+          spender: uniswapRouter.addressOn(destinationChain.id)
         }
       })
 
-      const swap = uniswapSwapRouter.build({
+      const swap = uniswapRouter.build({
         type: "exactInputSingle",
         data: {
-          chainId: baseSepolia.id,
+          chainId: destinationChain.id,
           args: [
             {
-              tokenIn: usdc,
-              tokenOut: fuse,
+              tokenIn: inToken.addressOn(destinationChain.id),
+              tokenOut: outToken.addressOn(destinationChain.id),
               fee: 3000,
               recipient: account.address,
               // @ts-expect-error: deadline not expected
@@ -99,21 +102,14 @@ export function useSwap({
         }
       })
 
-      const approveAndSwap = mcNexus.build({
-        type: "batch",
-        data: {
-          instructions: [approval, swap]
-        }
-      })
-
       const feeToken = {
-        address: mcUSDC.addressOn(optimismSepolia.id),
-        chainId: optimismSepolia.id
+        address: inToken.addressOn(sourceChain.id),
+        chainId: sourceChain.id
       }
 
       const fusionQuote = await meeClient.getFusionQuote({
         trigger,
-        instructions: [intent, approveAndSwap],
+        instructions: [intent, approval, swap],
         feeToken
       })
 
@@ -129,7 +125,21 @@ export function useSwap({
     } finally {
       setIsLoading(false)
     }
-  }, [mcNexusAddress, mcNexus, sellAmount, account, meeClient, usdc, fuse])
+  }, [
+    uniswapRouter,
+    mcNexusAddress,
+    mcNexus,
+    sellAmount,
+    account,
+    meeClient,
+    inToken,
+    outToken,
+    sourceChain.id,
+    destinationChain,
+    uniswapRouter.addressOn,
+    uniswapRouter.build,
+    mode
+  ])
 
   return {
     swap,
