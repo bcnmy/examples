@@ -1,6 +1,5 @@
 import { Tabs, TabsList, TabsTrigger } from "./tabs"
 import { useNetworkStore } from "@/app/store/network-store"
-import { cn } from "../../lib/utils"
 
 const networkVariants = {
   mainnet: {

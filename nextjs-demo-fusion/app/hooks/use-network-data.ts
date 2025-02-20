@@ -1,19 +1,16 @@
 import { base, optimism, baseSepolia, optimismSepolia } from "wagmi/chains"
 import { useNetworkStore } from "../store/network-store"
 import {
-  getMultichainContract,
   mcUSDC,
-  mcUSDT,
   mcUniswapSwapRouter,
   testnetMcUSDC,
   testnetMcUniswapSwapRouter
 } from "@biconomy/abstractjs-canary"
-import { erc20Abi } from "viem"
-import { fusionToken } from "../config/USDC"
+import { fusionToken, mcWeth } from "../config/tokens"
 
 const MINIMUM_ACROSS_IN_TOKEN_AMOUNT = {
   mainnet: 1,
-  testnet: 4.75
+  testnet: 5
 }
 
 export function useNetworkData() {
@@ -26,7 +23,7 @@ export function useNetworkData() {
       sourceChain: optimism,
       destinationChain: base,
       inToken: mcUSDC,
-      outToken: mcUSDT,
+      outToken: mcWeth,
       uniswapRouter: mcUniswapSwapRouter,
       minimumSpend
     }

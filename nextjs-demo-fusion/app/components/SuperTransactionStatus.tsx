@@ -11,9 +11,10 @@ import {
   type MeeClient,
   getExplorerTxLink,
   getChain,
-  getMeeScanLink
+  getMeeScanLink,
+  getJiffyScanLink
 } from "@biconomy/abstractjs-canary"
-import type { Hex } from "viem"
+import type { Hex, TransactionReceipt } from "viem"
 import { useEffect, useState } from "react"
 import React from "react"
 import Confetti from "react-confetti"
@@ -89,22 +90,26 @@ export const SuperTransactionStatus = ({
           </Link>
 
           {receipt &&
-            receipt?.receipts.length > 0 &&
-            receipt?.receipts.map((settlement: any, i: number) => {
+            receipt?.userOps.length > 0 &&
+            receipt?.userOps.map((userOp: any, i: number) => {
               if (i === 0) return null // Skip the first settlement as it's the supertransaction fee
-              const receiptFromChain = settlement?.value
-              const userOp = receipt?.userOps?.[i]
-              return receiptFromChain?.transactionHash ? (
+              const receiptFromChain = receipt?.receipts?.[
+                i
+              ] as PromiseFulfilledResult<TransactionReceipt>
+              const transactionHash = receiptFromChain?.value?.transactionHash
+
+              const link = transactionHash
+                ? getExplorerTxLink(transactionHash, userOp.chainId)
+                : getJiffyScanLink(userOp?.userOpHash)
+
+              return (
                 <div
-                  key={receiptFromChain.transactionHash}
+                  key={transactionHash}
                   className="flex items-center justify-between w-full"
                 >
                   <div>
                     <Link
-                      href={getExplorerTxLink(
-                        userOp.executionData,
-                        userOp.chainId
-                      )}
+                      href={link}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center text-blue-500 hover:text-blue-600"
@@ -115,17 +120,17 @@ export const SuperTransactionStatus = ({
                     </Link>
                   </div>
                   <div>
-                    {settlement.status === "fulfilled" ? (
+                    {receiptFromChain.status === "fulfilled" ? (
                       <CheckCircleIcon className="h-4 w-4 text-green-500" />
                     ) : (
                       <Loader2
-                        key={receiptFromChain.transactionHash}
+                        key={transactionHash + (i + 1)}
                         className="h-4 w-4 animate-spin"
                       />
                     )}
                   </div>
                 </div>
-              ) : null
+              )
             })}
         </div>
       </Card>

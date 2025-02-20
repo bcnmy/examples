@@ -3,6 +3,7 @@ import type { Address, Chain } from "viem"
 import { useBlockNumber } from "wagmi"
 import { createPublicClient, erc20Abi, http } from "viem"
 import type { MultichainToken } from "@biconomy/abstractjs-canary"
+import { useNetworkStore } from "../store/network-store"
 
 interface UseERC20BalanceProps {
   address?: Address
@@ -16,6 +17,7 @@ export type BalancePayload = {
   error: Error | null
   chain: Chain
   symbol: string
+  decimals: number
 }
 
 export function useERC20Balance({
@@ -28,7 +30,8 @@ export function useERC20Balance({
   const [error, setError] = useState<Error | null>(null)
   const { data: bNum } = useBlockNumber({ watch: true })
   const [symbol, setSymbol] = useState<string>("UNK")
-
+  const [decimals, setDecimals] = useState<number>(18)
+  const { mode } = useNetworkStore()
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     async function fetchBalance() {
@@ -43,7 +46,7 @@ export function useERC20Balance({
           transport: http()
         })
 
-        const [rawBalance, symbol] = await Promise.all([
+        const [rawBalance, symbol, decimals] = await Promise.all([
           publicClient.readContract({
             address: token,
             abi: erc20Abi,
@@ -54,6 +57,11 @@ export function useERC20Balance({
             address: token,
             abi: erc20Abi,
             functionName: "symbol"
+          }),
+          publicClient.readContract({
+            address: token,
+            abi: erc20Abi,
+            functionName: "decimals"
           })
         ])
 
@@ -61,6 +69,7 @@ export function useERC20Balance({
 
         setSymbol(symbol)
         setBalance(rawBalance)
+        setDecimals(decimals)
         setError(null)
       } catch (err) {
         setError(
@@ -71,13 +80,14 @@ export function useERC20Balance({
     }
 
     fetchBalance()
-  }, [address, token, bNum, chain])
+  }, [address, token, bNum, chain, mode])
 
   return {
     balance,
     isLoading: balance === undefined,
     error,
     chain,
-    symbol
+    symbol,
+    decimals
   }
 }

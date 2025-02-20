@@ -17,3 +17,13 @@ export const fusionToken = getMultichainContract<typeof erc20Abi>({
     ["0x232fb0469e5fc7f8f5a04eddbcc11f677143f715", baseSepolia.id] // Fusion
   ]
 })
+
+export const mcWeth = getMultichainContract<typeof erc20Abi>({
+  abi: erc20Abi,
+  deployments: [
+    ["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", 1],
+    ["0x4200000000000000000000000000000000000006", 10],
+    ["0x4200000000000000000000000000000000000006", 8453]
+  ]
+})
+

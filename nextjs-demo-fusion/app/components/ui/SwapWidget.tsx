@@ -30,7 +30,7 @@ type SwapWidgetProps = {
 }
 
 export function SwapWidget({ usdcBalance, outTokenBalance }: SwapWidgetProps) {
-  const { minimumSpend, mode } = useNetworkData()
+  const { minimumSpend, mode, outToken } = useNetworkData()
   const { mcNexus, mcNexusAddress, meeClient } = useMultichainNexus()
   const { toast } = useToast()
   const [inputAmount, setInputAmount] = useState<string>(
@@ -43,9 +43,10 @@ export function SwapWidget({ usdcBalance, outTokenBalance }: SwapWidgetProps) {
     setInputAmount(String(minimumSpend))
   }, [mode, minimumSpend])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     setOutputAmount(inputAmount)
-  }, [inputAmount])
+  }, [inputAmount, mode])
 
   const sellAmount = BigInt(+(inputAmount ?? 0) * 100) * BigInt(10 ** 4)
   const minimumNotMet =
@@ -108,13 +109,16 @@ export function SwapWidget({ usdcBalance, outTokenBalance }: SwapWidgetProps) {
                       height={16}
                       className="rounded-full"
                     />
-                    sep
                     <ChevronDown className="w-3 h-3" />
                   </span>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem>Op Sepolia</DropdownMenuItem>
-                  <DropdownMenuItem disabled>Optimism</DropdownMenuItem>
+                  <DropdownMenuItem>
+                    {mode === "mainnet" ? "Optimism" : "Op Sepolia"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled>
+                    {mode === "mainnet" ? "Optimism Sepolia" : "Optimism"}
+                  </DropdownMenuItem>
                   <DropdownMenuItem disabled>Base</DropdownMenuItem>
                   <DropdownMenuItem disabled>Arbitrum</DropdownMenuItem>
                   <DropdownMenuItem disabled>Polygon</DropdownMenuItem>
@@ -132,7 +136,7 @@ export function SwapWidget({ usdcBalance, outTokenBalance }: SwapWidgetProps) {
               onClick={(e) => e.currentTarget.select()}
               className="pr-20 transition-all border-2 focus:ring-2 focus:ring-primary/20"
               placeholder="1"
-              step={0.5}
+              step={1}
               min={minimumSpend}
             />
             <div className="absolute right-3 flex items-center space-x-2">
@@ -157,13 +161,16 @@ export function SwapWidget({ usdcBalance, outTokenBalance }: SwapWidgetProps) {
                       height={16}
                       className="rounded-full"
                     />
-                    sep
                     <ChevronDown className="w-3 h-3" />
                   </span>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem>Base Sepolia</DropdownMenuItem>
-                  <DropdownMenuItem disabled>Optimism</DropdownMenuItem>
+                  <DropdownMenuItem>
+                    {mode === "mainnet" ? "Base" : "Base Sepolia"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled>
+                    {mode === "mainnet" ? "Base Sepolia" : "Base"}
+                  </DropdownMenuItem>
                   <DropdownMenuItem disabled>Base</DropdownMenuItem>
                   <DropdownMenuItem disabled>Arbitrum</DropdownMenuItem>
                   <DropdownMenuItem disabled>Polygon</DropdownMenuItem>

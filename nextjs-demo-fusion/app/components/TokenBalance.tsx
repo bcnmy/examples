@@ -9,14 +9,14 @@ export type TokenBalanceParameters = {
 export function TokenBalance({ balances }: TokenBalanceParameters) {
   return (
     <div className="flex gap-2">
-      {balances.map(({ balance, chain, symbol }) => {
+      {balances.map(({ balance, chain, symbol, decimals }) => {
         return (
           <Badge
             key={`${chain.id}-${symbol}-${balance}`}
             variant="outline"
             className="animate-pulse-once"
           >
-            {(+formatUnits(balance ?? 0n, 6)).toFixed(2)}{" "}
+            {(+formatUnits(balance ?? 0n, decimals)).toFixed(4)}{" "}
             {symbol.substring(0, 4)}
           </Badge>
         )

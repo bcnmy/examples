@@ -136,8 +136,6 @@ export function useSwap({
     outToken,
     sourceChain.id,
     destinationChain,
-    uniswapRouter.addressOn,
-    uniswapRouter.build,
     mode
   ])
 
