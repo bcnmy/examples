@@ -1,4 +1,4 @@
-import { getMultichainContract } from "@biconomy/abstractjs-canary"
+import { getMultichainContract } from "@biconomy/abstractjs"
 import { erc20Abi } from "viem"
 import { baseSepolia, optimismSepolia, sepolia } from "viem/chains"
 
@@ -26,4 +26,3 @@ export const mcWeth = getMultichainContract<typeof erc20Abi>({
     ["0x4200000000000000000000000000000000000006", 8453]
   ]
 })
-

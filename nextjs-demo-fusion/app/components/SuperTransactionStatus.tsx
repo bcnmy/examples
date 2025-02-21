@@ -13,7 +13,7 @@ import {
   getChain,
   getMeeScanLink,
   getJiffyScanLink
-} from "@biconomy/abstractjs-canary"
+} from "@biconomy/abstractjs"
 import type { Hex, TransactionReceipt } from "viem"
 import { useEffect, useState } from "react"
 import React from "react"

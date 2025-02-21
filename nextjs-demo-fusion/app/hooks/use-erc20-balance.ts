@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import type { Address, Chain } from "viem"
 import { useBlockNumber } from "wagmi"
 import { createPublicClient, erc20Abi, http } from "viem"
-import type { MultichainToken } from "@biconomy/abstractjs-canary"
+import type { MultichainToken } from "@biconomy/abstractjs"
 import { useNetworkStore } from "../store/network-store"
 
 interface UseERC20BalanceProps {

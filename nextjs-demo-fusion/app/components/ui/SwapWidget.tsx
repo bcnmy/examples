@@ -5,7 +5,10 @@ import { Input } from "./input"
 import { ChevronDown, Loader2 } from "lucide-react"
 import { useSwap } from "@/app/hooks/use-swap"
 import Image from "next/image"
-import { getMeeScanLink } from "@biconomy/abstractjs-canary"
+import {
+  type GetFusionQuotePayload,
+  getMeeScanLink
+} from "@biconomy/abstractjs"
 import { useToast } from "@/app/hooks/use-toast"
 import Link from "next/link"
 import { Link as LinkFromLucide } from "lucide-react"
@@ -23,6 +26,12 @@ import { SuperTransactionStatus } from "../SuperTransactionStatus"
 import { NetworkToggle } from "./NetworkToggle"
 import { useNetworkData } from "@/app/hooks/use-network-data"
 import { FaucetButton } from "./FaucetButton"
+import {
+  TooltipProvider,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from "./tooltip"
 
 type SwapWidgetProps = {
   usdcBalance: BalancePayload
@@ -30,13 +39,14 @@ type SwapWidgetProps = {
 }
 
 export function SwapWidget({ usdcBalance, outTokenBalance }: SwapWidgetProps) {
-  const { minimumSpend, mode, outToken } = useNetworkData()
+  const { minimumSpend, mode } = useNetworkData()
   const { mcNexus, mcNexusAddress, meeClient } = useMultichainNexus()
   const { toast } = useToast()
   const [inputAmount, setInputAmount] = useState<string>(
     minimumSpend.toString()
   )
   const [outputAmount, setOutputAmount] = useState<string>("0")
+  const [quoteData, setQuoteData] = useState<GetFusionQuotePayload | null>(null)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
@@ -55,12 +65,36 @@ export function SwapWidget({ usdcBalance, outTokenBalance }: SwapWidgetProps) {
     !!inputAmount &&
     Number(inputAmount) > (usdcBalance?.balance ?? 0n) / BigInt(10 ** 6)
 
-  const { swap, isLoading, error, hash } = useSwap({
+  const { swap, isLoading, error, hash, getQuote, isQuoting } = useSwap({
     mcNexusAddress,
     mcNexus,
     sellAmount,
     meeClient
   })
+
+  const handleGetQuote = async () => {
+    try {
+      const fusionQuote = await getQuote()
+      if (fusionQuote) {
+        // Convert wei amount to USDC (6 decimals)
+        setQuoteData(fusionQuote)
+      }
+    } catch (err) {
+      console.error("Failed to get quote:", err)
+      toast({
+        title: "Error",
+        description: "Failed to get quote",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleConfirmSwap = async () => {
+    if (!quoteData) return
+    console.log({ quoteData })
+    await swap(quoteData)
+    setQuoteData(null) // Reset quote after swap
+  }
 
   useEffect(() => {
     if (hash) {
@@ -203,37 +237,93 @@ export function SwapWidget({ usdcBalance, outTokenBalance }: SwapWidgetProps) {
           </div>
         )}
 
-        <Button
-          className={`w-full transition-all duration-200 ${
-            isLoading
-              ? "bg-primary/80"
-              : minimumNotMet || maximumExceeded
-                ? "bg-destructive/80"
-                : "bg-gradient-to-r from-primary to-primary/80 hover:opacity-90"
-          }`}
-          onClick={() => swap()}
-          disabled={
-            isLoading ||
-            !mcNexus ||
-            !mcNexusAddress ||
-            !sellAmount ||
-            minimumNotMet ||
-            maximumExceeded
-          }
-        >
-          {minimumNotMet ? (
-            <span className="text-sm">Minimum swap is {minimumSpend} USDC</span>
-          ) : maximumExceeded ? (
-            <span className="text-sm">Insufficient funds</span>
-          ) : isLoading ? (
-            <span className="flex items-center gap-2">
-              Swapping
-              <Loader2 className="w-4 h-4 animate-spin" />
-            </span>
-          ) : (
-            <>Swap</>
-          )}
-        </Button>
+        {mode === "testnet" && (
+          <div className="text-xs text-amber-500 bg-amber-500/10 px-3 py-2 rounded-md w-full">
+            ⚠️ Testnet transactions are significantly slower due to bridge
+            confirmation times. For blazing fast swaps, try mainnet mode.
+          </div>
+        )}
+
+        {quoteData ? (
+          <div className="w-full space-y-3">
+            <div className="text-xs text-muted-foreground flex justify-between items-center px-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger className="flex items-center gap-1 underline decoration-dotted">
+                    Gas Limit:
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[200px]">
+                    <p>
+                      This is the maximum gas cost and is overestimated. Unused
+                      gas is automatically returned to your account in native
+                      tokens as part of the Supertransaction.
+                    </p>
+                  </TooltipContent>
+                  <span className="font-medium">
+                    {quoteData.quote.paymentInfo.tokenValue} USDC
+                  </span>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                className="flex-1"
+                variant="outline"
+                onClick={() => setQuoteData(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:opacity-90"
+                onClick={handleConfirmSwap}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    Swapping
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  </span>
+                ) : (
+                  "Confirm Swap"
+                )}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button
+            className={`w-full transition-all duration-200 ${
+              isQuoting
+                ? "bg-primary/80"
+                : minimumNotMet || maximumExceeded
+                  ? "bg-destructive/80"
+                  : "bg-gradient-to-r from-primary to-primary/80 hover:opacity-90"
+            }`}
+            onClick={handleGetQuote}
+            disabled={
+              isQuoting ||
+              !mcNexus ||
+              !mcNexusAddress ||
+              !sellAmount ||
+              minimumNotMet ||
+              maximumExceeded
+            }
+          >
+            {minimumNotMet ? (
+              <span className="text-sm">
+                Minimum swap is {minimumSpend} USDC
+              </span>
+            ) : maximumExceeded ? (
+              <span className="text-sm">Insufficient funds</span>
+            ) : isQuoting ? (
+              <span className="flex items-center gap-2">
+                Getting Quote
+                <Loader2 className="w-4 h-4 animate-spin" />
+              </span>
+            ) : (
+              <>Get Quote</>
+            )}
+          </Button>
+        )}
       </Card>
       <SuperTransactionStatus meeClient={meeClient} hash={hash} />
     </div>

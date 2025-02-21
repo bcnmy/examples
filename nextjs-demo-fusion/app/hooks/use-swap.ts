@@ -4,8 +4,9 @@ import {
   type MeeClient,
   type MultichainSmartAccount,
   safeMultiplier,
-  LARGE_DEFAULT_GAS_LIMIT
-} from "@biconomy/abstractjs-canary"
+  LARGE_DEFAULT_GAS_LIMIT,
+  type GetFusionQuotePayload
+} from "@biconomy/abstractjs"
 import { useAccount } from "wagmi"
 import { useNetworkData } from "./use-network-data"
 export type UseSwapProps = {
@@ -26,6 +27,7 @@ export function useSwap({
   const [error, setError] = useState<Error | null>(null)
   const [hash, setHash] = useState<Hex | null>(null)
   const [success, setSuccess] = useState(false)
+  const [isQuoting, setIsQuoting] = useState(false)
 
   const {
     sourceChain,
@@ -36,8 +38,37 @@ export function useSwap({
     mode
   } = useNetworkData()
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: explanation
+  const swap = useCallback(
+    async (fusionQuote: GetFusionQuotePayload) => {
+      if (!mcNexus || !fusionQuote || !meeClient) {
+        throw new Error("Missing required parameters")
+      }
+
+      setIsLoading(true)
+      setError(null)
+      setHash(null)
+
+      try {
+        console.log({ fusionQuote })
+        const { hash } = await meeClient.executeFusionQuote({ fusionQuote })
+
+        setHash(hash)
+        setSuccess(true)
+      } catch (err) {
+        const error =
+          err instanceof Error ? err : new Error("Failed to execute swap")
+        console.error("Swap error details:", err)
+        setError(error)
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [mcNexus, meeClient, mode]
+  )
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-  const swap = useCallback(async () => {
+  const getQuote = useCallback(async () => {
     if (
       !mcNexus ||
       !mcNexusAddress ||
@@ -49,9 +80,8 @@ export function useSwap({
       throw new Error("Missing required parameters")
     }
 
-    setIsLoading(true)
+    setIsQuoting(true)
     setError(null)
-    setHash(null)
 
     try {
       const trigger = {
@@ -113,17 +143,15 @@ export function useSwap({
         feeToken
       })
 
-      const { hash } = await meeClient.executeFusionQuote({ fusionQuote })
-
-      setHash(hash)
-      setSuccess(true)
+      return fusionQuote
     } catch (err) {
       const error =
-        err instanceof Error ? err : new Error("Failed to execute swap")
-      console.error("Swap error details:", err)
+        err instanceof Error ? err : new Error("Failed to get quote")
+      console.error("Quote error details:", err)
       setError(error)
+      throw error
     } finally {
-      setIsLoading(false)
+      setIsQuoting(false)
     }
   }, [
     uniswapRouter,
@@ -139,9 +167,37 @@ export function useSwap({
     mode
   ])
 
+  const handleSwap = useCallback(
+    async (fusionQuote: any) => {
+      setIsLoading(true)
+      setError(null)
+      setHash(null)
+
+      if (!meeClient) {
+        throw new Error("MEE client is not initialized")
+      }
+
+      try {
+        const { hash } = await meeClient.executeFusionQuote({ fusionQuote })
+        setHash(hash)
+        setSuccess(true)
+      } catch (err) {
+        const error =
+          err instanceof Error ? err : new Error("Failed to execute swap")
+        console.error("Swap error details:", err)
+        setError(error)
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [meeClient]
+  )
+
   return {
     swap,
+    getQuote,
     isLoading,
+    isQuoting,
     error,
     hash,
     success

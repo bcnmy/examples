@@ -5,7 +5,7 @@ import {
   mcUniswapSwapRouter,
   testnetMcUSDC,
   testnetMcUniswapSwapRouter
-} from "@biconomy/abstractjs-canary"
+} from "@biconomy/abstractjs"
 import { fusionToken, mcWeth } from "../config/tokens"
 
 const MINIMUM_ACROSS_IN_TOKEN_AMOUNT = {
