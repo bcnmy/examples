@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
-import { NexusClient, moduleActivator } from '@biconomy/sdk'
+import { NexusClient, moduleActivator } from '@biconomy/abstractjs'
 import { toWebAuthnKey, toPasskeyValidator, WebAuthnMode } from '@biconomy/passkey'
 import { Hex } from 'viem'
 import { createAccount } from '../index'

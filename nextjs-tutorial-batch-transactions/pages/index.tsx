@@ -6,7 +6,7 @@ const Home: React.FC = () => {
     React.useEffect(() => {
         const fetchTransactionDetails = async () => {
             const {address, hash} = await createAccountAndSendTransaction();
-            setTransactionDetails({address, hash});
+            setTransactionDetails({address: address || '', hash: hash || ''});
         };
         fetchTransactionDetails();
     }, []);

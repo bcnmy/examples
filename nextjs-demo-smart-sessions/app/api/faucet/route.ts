@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server"
-import { type Hex, http, createPublicClient, createWalletClient } from "viem"
+import {
+  type Hex,
+  http,
+  createPublicClient,
+  createWalletClient,
+  type LocalAccount
+} from "viem"
 import { privateKeyToAccount } from "viem/accounts"
 import { baseSepolia } from "viem/chains"
 import { config } from "dotenv"
@@ -14,7 +20,7 @@ const MOCK_USDC_ABI = MockTokenUSDC.abi
 const MOCK_WETH_ABI = MockTokenWETH.abi
 
 const pKey: Hex = `0x${process.env.PRIVATE_KEY}`
-const sessionKeyAccount = privateKeyToAccount(pKey)
+const sessionKeyAccount = privateKeyToAccount(pKey) as LocalAccount
 
 const amountUSDC = 5n * 10n ** 6n
 const amountWETH = 1n * 10n ** 15n
@@ -76,14 +82,18 @@ export async function POST(request: Request) {
       abi: MOCK_USDC_ABI,
       functionName: "mint",
       args: [userAddress, amountUSDC],
-      nonce
+      nonce,
+      chain: baseSepolia,
+      account: sessionKeyAccount
     })
     const hash2 = await walletClient.writeContract({
       address: MOCK_WETH_ADDRESS,
       abi: MOCK_WETH_ABI,
       functionName: "mint",
       args: [userAddress, amountWETH],
-      nonce: nonce + 1
+      nonce: nonce + 1,
+      chain: baseSepolia,
+      account: sessionKeyAccount
     })
 
     // Wait for receipts

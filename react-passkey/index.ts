@@ -1,4 +1,4 @@
-import { createNexusClient, createBicoPaymasterClient, createSmartAccountClient } from "@biconomy/sdk";
+import { createNexusClient, createBicoPaymasterClient, createSmartAccountClient, toNexusAccount } from "@biconomy/abstractjs";
 import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
 import { http } from "viem";
@@ -10,12 +10,14 @@ const bundlerUrl = "https://bundler.biconomy.io/api/v3/84532/nJPK7B3ru.dd7f7861-
 
 export const createAccount = async () => {
   const account = privateKeyToAccount(`${privateKey}`)
-  const nexusClient = await createSmartAccountClient({
-    signer: account,
-    chain: baseSepolia,
-    transport: http(),
-    index: BigInt(8),
-    bundlerTransport: http(bundlerUrl),
+  const nexusClient = createSmartAccountClient({
+    account: await toNexusAccount({
+      signer: account,
+      chain: baseSepolia,
+      transport: http(),
+      index: BigInt(8),
+    }),
+    transport: http(bundlerUrl),
     paymaster: createBicoPaymasterClient({ paymasterUrl })
   });
   return nexusClient;

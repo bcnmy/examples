@@ -9,9 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@biconomy/abstractjs": "^0.0.35",
+    "@biconomy/abstractjs": "0.1.0",
     "@rhinestone/module-sdk": "0.2.3",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.4.7",
     "next": "14.2.14",
     "react": "^18",
     "react-dom": "^18",
