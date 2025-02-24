@@ -14,8 +14,9 @@ import {
   toSmartSessionsValidator,
   smartSessionUseActions,
   createBicoPaymasterClient,
-  type SessionData
-} from "@biconomy/sdk"
+  type SessionData,
+  toNexusAccount
+} from "@biconomy/abstractjs"
 
 interface UseApproveTokenProps {
   nexusAddress?: Address
@@ -47,14 +48,15 @@ export function useApproveToken({
 
     try {
       // Create Nexus client
-      const usersNexusClient = await createNexusClient({
-        accountAddress: nexusAddress,
-        chain: baseSepolia,
-        transport: http(),
-        bundlerTransport: http(
+      const usersNexusClient = createNexusClient({
+        account: await toNexusAccount({
+          signer: sessionKeyAccount,
+          transport: http(),
+          chain: baseSepolia
+        }),
+        transport: http(
           "https://bundler.biconomy.io/api/v3/84532/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44"
         ),
-        signer: sessionKeyAccount,
         paymaster: createBicoPaymasterClient({
           transport: http(process.env.NEXT_PUBLIC_PAYMASTER_URL!)
         })

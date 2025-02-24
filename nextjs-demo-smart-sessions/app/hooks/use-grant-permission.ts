@@ -5,14 +5,19 @@ import {
   smartSessionCreateActions,
   stringify,
   type SessionData
-} from "@biconomy/sdk"
-import { SmartSessionMode } from "@rhinestone/module-sdk/module"
+} from "@biconomy/abstractjs"
 import {
   MOCK_POOL_ADDRESS,
   MOCK_WETH_ADDRESS,
   MOCK_USDC_ADDRESS
 } from "../lib/constants"
 import { type Hex, slice, toFunctionSelector } from "viem"
+
+export const SmartSessionMode = {
+  USE: "0x00" as Hex,
+  ENABLE: "0x01" as Hex,
+  UNSAFE_ENABLE: "0x02" as Hex
+} as const
 
 export function useGrantPermissions() {
   const { nexusClient, nexusAddress, setMarketStatus } = useMarketStore()
@@ -75,6 +80,8 @@ export function useGrantPermissions() {
   }, [nexusAddress, setMarketStatus])
 
   const grantTradePermission = useCallback(async () => {
+    console.log("grantTradePermission", nexusClient, nexusAddress)
+
     if (!nexusClient || !nexusAddress) return
 
     try {
@@ -91,7 +98,8 @@ export function useGrantPermissions() {
 
       // Install module if not already installed
       const hash = await nexusClient.installModule({
-        module: sessionsModule.moduleInitData
+        module: sessionsModule.moduleInitData,
+        account: nexusClient.account
       })
       await nexusClient.waitForUserOperationReceipt({ hash })
 

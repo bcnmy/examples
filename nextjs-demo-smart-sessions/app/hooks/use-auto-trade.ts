@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useMarketStore } from "@/app/stores/marketStore"
 import { useToast } from "@/app/hooks/use-toast"
-import { stringify } from "@biconomy/sdk"
+import { stringify } from "@biconomy/abstractjs"
 import { TradeToast } from "@/app/components/ui/TradeToast"
 import { useAssetBalances } from "./use-asset-balances"
 import { MOCK_POOL_ADDRESS } from "../lib/constants"
@@ -38,7 +38,7 @@ export function useAutoTrade() {
   const isExecutingRef = useRef(false)
   const [allowed, setAllowed] = useState(false)
 
-  const checkAllowance = async () => {
+  const checkAllowance = useCallback(async () => {
     if (!nexusAddress || !sessionData) {
       console.log("Missing required data:", {
         nexusAddress,
@@ -126,7 +126,7 @@ export function useAutoTrade() {
         setAllowed(false)
       }
     }
-  }
+  }, [nexusAddress, sessionData, toast, nexusClient])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   const executeTrade = useCallback(async () => {
@@ -277,7 +277,8 @@ export function useAutoTrade() {
     addTrade,
     updateTrade,
     linkUserOpToTx,
-    allowed
+    allowed,
+    checkAllowance
   ])
 
   useEffect(() => {

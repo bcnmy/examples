@@ -9,7 +9,7 @@ import { baseSepolia } from "wagmi/chains"
 import { config } from "./config/wallet"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import "@rainbow-me/rainbowkit/styles.css"
-import { Toaster } from "@/app/components/ui/toaster"
+import { Toaster } from "./components/ui/toaster"
 import { useEffect, useState } from "react"
 
 // Move font initialization outside component but don't export it

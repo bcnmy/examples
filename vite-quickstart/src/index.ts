@@ -1,4 +1,4 @@
-import { createNexusClient } from "@biconomy/sdk";
+import { createNexusClient, toNexusAccount } from "@biconomy/abstractjs";
 import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
 import { createWalletClient, http } from "viem";
@@ -15,11 +15,13 @@ export const createAccountAndSendTransaction = async () => {
         transport: http(),
     });
 
-    const nexusClient = await createNexusClient({
-        signer: walletClient,
-        chain: baseSepolia,
-        transport: http(),
-        bundlerTransport: http(bundlerUrl),
+    const nexusClient = createNexusClient({
+        account: await toNexusAccount({
+            signer: walletClient,
+            chain: baseSepolia,
+            transport: http(),
+        }),
+        transport: http(bundlerUrl),
     });
     const address = await nexusClient.account.address;
     console.log("address", address)

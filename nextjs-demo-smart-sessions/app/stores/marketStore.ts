@@ -10,8 +10,9 @@ import {
 import {
   createBicoPaymasterClient,
   createNexusClient,
+  toNexusAccount,
   type NexusClient
-} from "@biconomy/sdk"
+} from "@biconomy/abstractjs"
 import { uuid } from "../lib/utils"
 
 export type Trade = {
@@ -74,16 +75,18 @@ export const useMarketStore = create<MarketState>()(
         if (!global?.window?.ethereum || !address || !chain) return
 
         try {
-          const nexusClient = await createNexusClient({
-            chain,
-            transport: http(),
-            bundlerTransport: http(
+          const nexusClient = createNexusClient({
+            account: await toNexusAccount({
+              chain,
+              signer: createWalletClient({
+                chain,
+                transport: custom(global?.window?.ethereum ?? "")
+              }),
+              transport: http()
+            }),
+            transport: http(
               "https://bundler.biconomy.io/api/v3/84532/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44"
             ),
-            signer: createWalletClient({
-              chain,
-              transport: custom(global?.window?.ethereum ?? "")
-            }),
             paymaster: createBicoPaymasterClient({
               transport: http(process.env.NEXT_PUBLIC_PAYMASTER_URL!)
             })

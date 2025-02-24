@@ -5,6 +5,6 @@ To use the local SDK during development:
 ```json
 {
   "dependencies": {
-    "@biconomy/sdk": "file:../../sdk/dist/_esm"
+    "@biconomy/abstractjs": "file:../../sdk/dist/_esm"
   }
 }

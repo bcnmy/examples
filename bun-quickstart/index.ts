@@ -1,18 +1,20 @@
 import { privateKeyToAccount } from "viem/accounts";
 import { base, baseSepolia, optimism } from "viem/chains";
 import { http, zeroAddress } from "viem";
-import { createMeeClient, createNexusClient, mcUSDC, toMultichainNexusAccount } from "@biconomy/abstractjs";
+import { createMeeClient, createSmartAccountClient, mcUSDC, toMultichainNexusAccount, toNexusAccount } from "@biconomy/abstractjs";
 
 const privateKey = process.env.PRIVATE_KEY;
 const bundlerUrl = "https://bundler.biconomy.io/api/v3/84532/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44";
 
 export const main4337 = async () => {
     const account = privateKeyToAccount(`0x${privateKey}`)
-    const nexusClient = await createNexusClient({
-        signer: account,
-        chain: baseSepolia,
-        transport: http(),
-        bundlerTransport: http(bundlerUrl),
+    const nexusClient = createSmartAccountClient({
+        account: await toNexusAccount({
+            signer: account,
+            chain: baseSepolia,
+            transport: http(),
+        }),
+        transport: http(bundlerUrl),
     });
     // @ts-ignore
     const address = nexusClient.account?.address!;
@@ -35,10 +37,10 @@ export const mainMee = async () => {
     const mcAccount = await toMultichainNexusAccount({
         signer: account,
         chains: [base, optimism],
+        transports: [http(), http()],
     });
 
-    const meeClient = createMeeClient({  account: mcAccount });
-
+    const meeClient = await createMeeClient({  account: mcAccount });
 
     const quote = await meeClient.getQuote({
         instructions: [{

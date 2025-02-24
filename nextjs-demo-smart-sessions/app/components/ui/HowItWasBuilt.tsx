@@ -187,7 +187,7 @@ export function HowItWasBuilt({
                   with Biconomy SDK today:
                 </p>
                 <div className="bg-white/5 p-4 rounded-lg font-mono text-xs">
-                  npm i @biconomy/sdk viem @rhinestone/module-sdk
+                  npm i @biconomy/abstractjs viem @rhinestone/module-sdk
                 </div>
               </div>
             </section>
