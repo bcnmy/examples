@@ -122,7 +122,7 @@ export function useSwap({
               recipient: account.address,
               // @ts-expect-error: deadline not expected
               deadline: BigInt(Math.floor(Date.now() / 1000) + 900),
-              amountIn: safeMultiplier(sellAmount, 0.8), // Composability coming soon...
+              amountIn: safeMultiplier(sellAmount, 0.95), // Composability coming soon...
               amountOutMinimum: 1n,
               sqrtPriceLimitX96: 0n
             }
