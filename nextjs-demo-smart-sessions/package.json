@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@biconomy/abstractjs": "file:../../abstractjs/dist/_esm",
+    "@biconomy/abstractjs": "0.1.1",
     "@rhinestone/module-sdk": "0.2.3",
     "@radix-ui/react-dialog": "^1.1.2",
     "@radix-ui/react-popover": "^1.1.2",

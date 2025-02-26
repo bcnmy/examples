@@ -11,8 +11,8 @@
     "@types/bun": "latest"  
   },
   "dependencies": {
-    "@biconomy/abstractjs": "0.1.0",
+    "@biconomy/abstractjs": "0.1.1",
     "@rhinestone/module-sdk": "0.2.3",
-    "viem": "^2.0.0"
+    "viem": "^2.23.5"
   }
 }

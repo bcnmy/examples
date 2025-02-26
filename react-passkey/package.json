@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@biconomy/passkey": "^0.0.2",
-    "@biconomy/abstractjs": "0.1.0",
+    "@biconomy/abstractjs": "0.1.1",
     "@rhinestone/module-sdk": "0.2.3",
     "dotenv": "^16.4.5",
     "next": "14.2.14",
