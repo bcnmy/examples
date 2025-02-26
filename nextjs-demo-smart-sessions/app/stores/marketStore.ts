@@ -75,15 +75,20 @@ export const useMarketStore = create<MarketState>()(
         if (!global?.window?.ethereum || !address || !chain) return
 
         try {
+          const signer = createWalletClient({
+            chain,
+            account: address,
+            transport: custom(global?.window?.ethereum ?? "")
+          })
+
+          const nexusAccount = await toNexusAccount({
+            signer,
+            transport: http(),
+            chain
+          })
+
           const nexusClient = createNexusClient({
-            account: await toNexusAccount({
-              chain,
-              signer: createWalletClient({
-                chain,
-                transport: custom(global?.window?.ethereum ?? "")
-              }),
-              transport: http()
-            }),
+            account: nexusAccount,
             transport: http(
               "https://bundler.biconomy.io/api/v3/84532/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44"
             ),

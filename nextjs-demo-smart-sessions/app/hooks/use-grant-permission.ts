@@ -4,14 +4,16 @@ import {
   toSmartSessionsValidator,
   smartSessionCreateActions,
   stringify,
-  type SessionData
+  type SessionData,
+  getExplorerTxLink
 } from "@biconomy/abstractjs"
 import {
   MOCK_POOL_ADDRESS,
   MOCK_WETH_ADDRESS,
   MOCK_USDC_ADDRESS
 } from "../lib/constants"
-import { type Hex, slice, toFunctionSelector } from "viem"
+import { getAddress, type Hex, slice, toFunctionSelector } from "viem"
+import { baseSepolia } from "viem/chains"
 
 export const SmartSessionMode = {
   USE: "0x00" as Hex,
@@ -87,8 +89,10 @@ export function useGrantPermissions() {
     try {
       setStatus("enabling")
 
-      // Generate a session key for the dapp owner
-      const sessionPublicKey: Hex = "0x3079B249DFDE4692D7844aA261f8cf7D927A0DA5"
+      // process.env.DAPP_PRIVATE_KEY public address
+      const sessionPublicKey: Hex = getAddress(
+        "0x40d67A9bd07cdc8a2EE404Eb09494D5eE0d1124F"
+      )
 
       // Create sessions module
       const sessionsModule = toSmartSessionsValidator({
@@ -96,14 +100,32 @@ export function useGrantPermissions() {
         signer: nexusClient.account.signer
       })
 
-      // Install module if not already installed
-      const hash = await nexusClient.installModule({
-        module: sessionsModule.moduleInitData,
-        account: nexusClient.account
-      })
-      await nexusClient.waitForUserOperationReceipt({ hash })
+      console.log("sessionsModule", sessionsModule)
+      console.log(
+        "sessionsModule.moduleInitData",
+        sessionsModule.moduleInitData
+      )
 
-      setStatus("granting")
+      const isModuleInstalled = await nexusClient.isModuleInstalled({
+        module: sessionsModule.moduleInitData
+      })
+
+      if (!isModuleInstalled) {
+        setStatus("granting")
+        // Install module if not already installed
+        const hash = await nexusClient.installModule({
+          module: sessionsModule.moduleInitData
+        })
+
+        const receipt = await nexusClient.waitForUserOperationReceipt({
+          hash
+        })
+        if (receipt.success.toString() !== "true") {
+          throw new Error(
+            `Failed to install module: ${getExplorerTxLink(hash, baseSepolia)}`
+          )
+        }
+      }
 
       // Create session client
       const nexusSessionClient = nexusClient.extend(
@@ -121,6 +143,8 @@ export function useGrantPermissions() {
         0,
         4
       )
+
+      console.log("sessionPublicKey", sessionPublicKey)
 
       // Grant permission
       const createSessionsResponse = await nexusSessionClient.grantPermission({
@@ -151,6 +175,8 @@ export function useGrantPermissions() {
           }
         ]
       })
+
+      console.log("createSessionsResponse", createSessionsResponse)
 
       // Create and save session data
       const newSessionData: SessionData = {

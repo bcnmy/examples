@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { type Hex, http, erc20Abi } from "viem"
+import { type Hex, http, erc20Abi, stringify } from "viem"
 import { privateKeyToAccount } from "viem/accounts"
 import { baseSepolia } from "viem/chains"
 import { config } from "dotenv"
@@ -10,21 +10,21 @@ import {
   MOCK_WETH_ADDRESS
 } from "@/app/lib/constants"
 import {
-  createBicoPaymasterClient,
   createNexusClient,
   toSmartSessionsValidator,
   smartSessionUseActions,
   parse,
   type SessionData,
   type NexusClient,
-  toNexusAccount
+  toNexusAccount,
+  createBicoPaymasterClient
 } from "@biconomy/abstractjs"
 import { createPublicClient } from "viem"
 import { ApprovalStore } from "@/app/lib/approvalStore"
 
 config()
 
-const pKey: Hex = `0x${process.env.PRIVATE_KEY}`
+const pKey: Hex = `0x${process.env.DAPP_PRIVATE_KEY}`
 const sessionKeyAccount = privateKeyToAccount(pKey)
 
 export async function POST(request: Request) {
@@ -45,12 +45,15 @@ export async function POST(request: Request) {
       transport: http()
     })
 
+    const nexusAccount = await toNexusAccount({
+      accountAddress: userAddress,
+      signer: sessionKeyAccount,
+      transport: http(),
+      chain: baseSepolia
+    })
+
     const usersNexusClient = createNexusClient({
-      account: await toNexusAccount({
-        signer: sessionKeyAccount,
-        transport: http(),
-        chain: baseSepolia
-      }),
+      account: nexusAccount,
       transport: http(
         "https://bundler.biconomy.io/api/v3/84532/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44"
       ),
@@ -72,6 +75,8 @@ export async function POST(request: Request) {
         })
       })
     )
+
+    console.log({ wethAllowance, usdcAllowance })
 
     const allowanceIsLessThanAmount = [wethAllowance, usdcAllowance].some(
       (allowance) => allowance < maxApproval
@@ -102,7 +107,10 @@ export async function POST(request: Request) {
     }
 
     await ApprovalStore.setApproved(userAddress)
-    return NextResponse.json({ status: "success", approvalReceipts })
+    return NextResponse.json({
+      status: "success",
+      approvalReceipts: stringify(approvalReceipts)
+    })
   } catch (error) {
     console.error("Approval failed:", error)
     if (error instanceof Error) {
@@ -124,6 +132,10 @@ async function approveTokens(
   sessionData: SessionData,
   usersNexusClient: NexusClient
 ) {
+  if (!usersNexusClient) {
+    throw new Error("Nexus client not found")
+  }
+
   console.log("=== Starting Token Approvals ===", tokens)
   const maxApproval = 2n ** 256n - 1n
   const receipts = []
@@ -131,21 +143,26 @@ async function approveTokens(
   for (let i = 0; i < tokens.length; i++) {
     const tokenAddress = tokens[i]
 
-    // console.log(`Approving token ${i + 1}/${tokens.length}: ${tokenAddress}`)
+    console.log(`Approving token ${i + 1}/${tokens.length}: ${tokenAddress}`)
+    console.log("sessionData", sessionData)
 
     try {
       const sessionsModule = toSmartSessionsValidator({
         signer: sessionKeyAccount,
-        account: usersNexusClient?.account,
+        account: usersNexusClient.account,
         moduleData: sessionData.moduleData
       })
-
-      const client = usersNexusClient.extend(
+      const smartSessionClient = usersNexusClient.extend(
         smartSessionUseActions(sessionsModule)
       )
 
+      console.log(
+        "smartSessionClient.account.address",
+        smartSessionClient.account.address
+      )
+
       // Execute approval
-      const userOpHash = await client.usePermission({
+      const userOpHash = await smartSessionClient.usePermission({
         calls: [
           {
             to: tokenAddress,
@@ -157,6 +174,8 @@ async function approveTokens(
           }
         ]
       })
+
+      console.log("userOpHash", userOpHash)
 
       console.log(`UserOp hash received for token ${tokenAddress}:`, userOpHash)
 

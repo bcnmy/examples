@@ -20,7 +20,7 @@ const MOCK_USDC_ABI = MockTokenUSDC.abi
 const MOCK_WETH_ABI = MockTokenWETH.abi
 
 const pKey: Hex = `0x${process.env.PRIVATE_KEY}`
-const sessionKeyAccount = privateKeyToAccount(pKey) as LocalAccount
+const faucetOwnerAccount = privateKeyToAccount(pKey) as LocalAccount
 
 const amountUSDC = 5n * 10n ** 6n
 const amountWETH = 1n * 10n ** 15n
@@ -67,13 +67,13 @@ export async function POST(request: Request) {
     }
 
     const walletClient = createWalletClient({
-      account: sessionKeyAccount,
+      account: faucetOwnerAccount,
       chain: baseSepolia,
       transport: http()
     })
 
     const nonce = await publicClient.getTransactionCount({
-      address: sessionKeyAccount.address
+      address: faucetOwnerAccount.address
     })
 
     // Send mint transactions directly
@@ -84,8 +84,9 @@ export async function POST(request: Request) {
       args: [userAddress, amountUSDC],
       nonce,
       chain: baseSepolia,
-      account: sessionKeyAccount
+      account: faucetOwnerAccount
     })
+    const receipt1 = await publicClient.waitForTransactionReceipt({ hash })
     const hash2 = await walletClient.writeContract({
       address: MOCK_WETH_ADDRESS,
       abi: MOCK_WETH_ABI,
@@ -93,14 +94,11 @@ export async function POST(request: Request) {
       args: [userAddress, amountWETH],
       nonce: nonce + 1,
       chain: baseSepolia,
-      account: sessionKeyAccount
+      account: faucetOwnerAccount
     })
-
-    // Wait for receipts
-    const [receipt1, receipt2] = await Promise.all([
-      publicClient.waitForTransactionReceipt({ hash }),
-      publicClient.waitForTransactionReceipt({ hash: hash2 })
-    ])
+    const receipt2 = await publicClient.waitForTransactionReceipt({
+      hash: hash2
+    })
 
     if (receipt1.status !== "success" || receipt2.status !== "success") {
       return NextResponse.json({ error: "Transaction failed" }, { status: 500 })
