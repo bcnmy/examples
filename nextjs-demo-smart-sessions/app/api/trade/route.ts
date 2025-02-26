@@ -1,5 +1,14 @@
 import { NextResponse } from "next/server"
-import { type Hex, http, erc20Abi, createPublicClient, maxUint256 } from "viem"
+import {
+  type Hex,
+  http,
+  erc20Abi,
+  createPublicClient,
+  maxUint256,
+  pad,
+  concat,
+  numberToHex
+} from "viem"
 import { privateKeyToAccount } from "viem/accounts"
 import { baseSepolia } from "viem/chains"
 import { config } from "dotenv"
@@ -16,8 +25,9 @@ import {
   toSmartSessionsValidator,
   smartSessionUseActions,
   parse,
-  type SessionData
-} from "@biconomy/sdk"
+  type SessionData,
+  toNexusAccount
+} from "@biconomy/abstractjs"
 import { ApprovalStore } from "@/app/lib/approvalStore"
 
 const amountUSDC = 5n * 10n ** 6n
@@ -25,7 +35,7 @@ const amountWETH = 1n * 10n ** 15n
 
 config()
 
-const pKey: Hex = `0x${process.env.PRIVATE_KEY}`
+const pKey: Hex = `0x${process.env.DAPP_PRIVATE_KEY}`
 const sessionKeyAccount = privateKeyToAccount(pKey)
 
 export async function POST(request: Request) {
@@ -43,13 +53,13 @@ export async function POST(request: Request) {
 
     const sessionData = parse(sessionData_) as SessionData
 
+    const publicClient = createPublicClient({
+      chain: baseSepolia,
+      transport: http()
+    })
+
     const isApproved = await ApprovalStore.isApproved(userAddress)
     if (!isApproved) {
-      const publicClient = createPublicClient({
-        chain: baseSepolia,
-        transport: http()
-      })
-
       const [wethAllowance, usdcAllowance] = await Promise.all(
         [MOCK_WETH_ADDRESS, MOCK_USDC_ADDRESS].map((tokenAddress_) => {
           return publicClient.readContract({
@@ -74,14 +84,19 @@ export async function POST(request: Request) {
       await ApprovalStore.setApproved(userAddress)
     }
 
-    const usersNexusClient = await createNexusClient({
+    const nexusAccount = await toNexusAccount({
       accountAddress: userAddress,
-      chain: baseSepolia,
+      signer: sessionKeyAccount,
       transport: http(),
-      bundlerTransport: http(
+      chain: baseSepolia
+    })
+
+    const usersNexusClient = createNexusClient({
+      account: nexusAccount,
+      chain: baseSepolia,
+      transport: http(
         "https://bundler.biconomy.io/api/v3/84532/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44"
       ),
-      signer: sessionKeyAccount,
       paymaster: createBicoPaymasterClient({
         transport: http(process.env.NEXT_PUBLIC_PAYMASTER_URL!)
       })

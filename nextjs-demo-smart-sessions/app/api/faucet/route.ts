@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server"
-import { type Hex, http, createPublicClient, createWalletClient } from "viem"
+import {
+  type Hex,
+  http,
+  createPublicClient,
+  createWalletClient,
+  type LocalAccount
+} from "viem"
 import { privateKeyToAccount } from "viem/accounts"
 import { baseSepolia } from "viem/chains"
 import { config } from "dotenv"
@@ -14,7 +20,7 @@ const MOCK_USDC_ABI = MockTokenUSDC.abi
 const MOCK_WETH_ABI = MockTokenWETH.abi
 
 const pKey: Hex = `0x${process.env.PRIVATE_KEY}`
-const sessionKeyAccount = privateKeyToAccount(pKey)
+const faucetOwnerAccount = privateKeyToAccount(pKey) as LocalAccount
 
 const amountUSDC = 5n * 10n ** 6n
 const amountWETH = 1n * 10n ** 15n
@@ -61,13 +67,13 @@ export async function POST(request: Request) {
     }
 
     const walletClient = createWalletClient({
-      account: sessionKeyAccount,
+      account: faucetOwnerAccount,
       chain: baseSepolia,
       transport: http()
     })
 
     const nonce = await publicClient.getTransactionCount({
-      address: sessionKeyAccount.address
+      address: faucetOwnerAccount.address
     })
 
     // Send mint transactions directly
@@ -76,21 +82,23 @@ export async function POST(request: Request) {
       abi: MOCK_USDC_ABI,
       functionName: "mint",
       args: [userAddress, amountUSDC],
-      nonce
+      nonce,
+      chain: baseSepolia,
+      account: faucetOwnerAccount
     })
+    const receipt1 = await publicClient.waitForTransactionReceipt({ hash })
     const hash2 = await walletClient.writeContract({
       address: MOCK_WETH_ADDRESS,
       abi: MOCK_WETH_ABI,
       functionName: "mint",
       args: [userAddress, amountWETH],
-      nonce: nonce + 1
+      nonce: nonce + 1,
+      chain: baseSepolia,
+      account: faucetOwnerAccount
     })
-
-    // Wait for receipts
-    const [receipt1, receipt2] = await Promise.all([
-      publicClient.waitForTransactionReceipt({ hash }),
-      publicClient.waitForTransactionReceipt({ hash: hash2 })
-    ])
+    const receipt2 = await publicClient.waitForTransactionReceipt({
+      hash: hash2
+    })
 
     if (receipt1.status !== "success" || receipt2.status !== "success") {
       return NextResponse.json({ error: "Transaction failed" }, { status: 500 })
