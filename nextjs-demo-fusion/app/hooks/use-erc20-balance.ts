@@ -43,7 +43,7 @@ export function useERC20Balance({
       try {
         const publicClient = createPublicClient({
           chain,
-          transport: http()
+          transport: http(chain.id === 10 ? "https://opt-mainnet.g.alchemy.com/v2/2pp0SJKFL7dddzo8pMz4kBvIfUJVtGd4" : chain.id === 8453 ? "https://base-mainnet.g.alchemy.com/v2/sW0MVUHI7kUFIKTmY9HV9G8o3tlffvv4" : undefined)
         })
 
         const [rawBalance, symbol, decimals] = await Promise.all([

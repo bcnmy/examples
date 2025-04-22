@@ -11,6 +11,6 @@ export const testnetConfig = createConfig({
 export const mainnetConfig = createConfig({
   chains: [optimism],
   transports: {
-    [optimism.id]: http()
+    [optimism.id]: http("https://opt-mainnet.g.alchemy.com/v2/2pp0SJKFL7dddzo8pMz4kBvIfUJVtGd4")
   }
 })

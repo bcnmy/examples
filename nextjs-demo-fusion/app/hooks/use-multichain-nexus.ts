@@ -32,9 +32,14 @@ export function useMultichainNexus() {
         !!global?.window?.ethereum &&
         chain?.id
       ) {
+
+
+        const sourceTransport = http(sourceChain.id === 10 ? "https://opt-mainnet.g.alchemy.com/v2/sW0MVUHI7kUFIKTmY9HV9G8o3tlffvv4" : undefined)
+        const destinationTransport = http(destinationChain.id === 8453 ? "https://base-mainnet.g.alchemy.com/v2/sW0MVUHI7kUFIKTmY9HV9G8o3tlffvv4" : undefined)
+
         const mcNexus = await toMultichainNexusAccount({
           chains: [sourceChain, destinationChain],
-          transports: [http(), http()],
+          transports: [sourceTransport, destinationTransport],
           signer: createWalletClient({
             chain,
             account: address,
