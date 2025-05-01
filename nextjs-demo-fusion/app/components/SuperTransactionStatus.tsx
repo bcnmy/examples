@@ -39,7 +39,7 @@ export const SuperTransactionStatus = ({
       if (receipt) {
         setReceipt(receipt)
       }
-      if (receipt?.transactionStatus === "SUCCESS") {
+      if (receipt?.transactionStatus === "MINED_SUCCESS") {
         setShowConfetti(true)
         // Hide confetti after 5 seconds
         setTimeout(() => setShowConfetti(false), 5000)
@@ -65,7 +65,7 @@ export const SuperTransactionStatus = ({
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-medium text-sm">Supertransaction Status</h3>
           <div className="flex items-center gap-2">
-            {receipt?.transactionStatus === "SUCCESS" ? (
+            {receipt?.transactionStatus === "MINED_SUCCESS" ? (
               <CheckCircleIcon className="h-4 w-4 text-green-500" />
             ) : (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -120,7 +120,7 @@ export const SuperTransactionStatus = ({
                     </Link>
                   </div>
                   <div>
-                    {receiptFromChain.status === "fulfilled" ? (
+                    {receiptFromChain?.status === "fulfilled" ? (
                       <CheckCircleIcon className="h-4 w-4 text-green-500" />
                     ) : (
                       <Loader2
