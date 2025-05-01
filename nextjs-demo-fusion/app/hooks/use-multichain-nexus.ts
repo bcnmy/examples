@@ -5,9 +5,10 @@ import {
   type MeeClient
 } from "@biconomy/abstractjs"
 import { useEffect, useState } from "react"
-import { custom, http, useAccount } from "wagmi"
+import { custom, http, useAccount, useConnections, useWalletClient } from "wagmi"
 import { type Address, createWalletClient } from "viem"
 import { useNetworkData } from "./use-network-data"
+
 export function useMultichainNexus() {
   const { sourceChain, destinationChain, mode } = useNetworkData()
   const [mcNexus, setMcNexus] = useState<MultichainSmartAccount | null>(null)
@@ -37,14 +38,16 @@ export function useMultichainNexus() {
         const sourceTransport = http(sourceChain.id === 10 ? "https://opt-mainnet.g.alchemy.com/v2/sW0MVUHI7kUFIKTmY9HV9G8o3tlffvv4" : undefined)
         const destinationTransport = http(destinationChain.id === 8453 ? "https://base-mainnet.g.alchemy.com/v2/sW0MVUHI7kUFIKTmY9HV9G8o3tlffvv4" : undefined)
 
+
+        const signer = createWalletClient({
+          chain,
+          transport: custom(global?.window?.ethereum)
+        })
+
         const mcNexus = await toMultichainNexusAccount({
           chains: [sourceChain, destinationChain],
           transports: [sourceTransport, destinationTransport],
-          signer: createWalletClient({
-            chain,
-            account: address,
-            transport: custom(global?.window?.ethereum ?? "")
-          })
+          signer
         })
         const meeClient = await createMeeClient({ account: mcNexus })
         setMcNexus(mcNexus)
@@ -61,7 +64,7 @@ export function useMultichainNexus() {
     mcNexus,
     sourceChain,
     destinationChain,
-    mode
+    mode,
   ])
 
   return {

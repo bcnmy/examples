@@ -51,7 +51,8 @@ export function useSwap({
 
       try {
         console.log({ fusionQuote })
-        const { hash } = await meeClient.executeFusionQuote({ fusionQuote })
+        const signedQuote = await meeClient.signOnChainQuote({ fusionQuote });
+        const { hash } = await meeClient.executeSignedQuote({ signedQuote });
 
         setHash(hash)
         setSuccess(true)
@@ -87,7 +88,8 @@ export function useSwap({
       const trigger = {
         chainId: sourceChain.id,
         tokenAddress: inToken.addressOn(sourceChain.id),
-        amount: sellAmount
+        amount: sellAmount,
+        includeFee: true
       }
 
       const intent = mcNexus.build({
@@ -137,7 +139,7 @@ export function useSwap({
         chainId: sourceChain.id
       }
 
-      const fusionQuote = await meeClient.getFusionQuote({
+      const fusionQuote = await meeClient.getOnChainQuote({
         trigger,
         instructions: [intent, approval, swap],
         feeToken
@@ -166,32 +168,6 @@ export function useSwap({
     destinationChain,
     mode
   ])
-
-  const handleSwap = useCallback(
-    async (fusionQuote: any) => {
-      setIsLoading(true)
-      setError(null)
-      setHash(null)
-
-      if (!meeClient) {
-        throw new Error("MEE client is not initialized")
-      }
-
-      try {
-        const { hash } = await meeClient.executeFusionQuote({ fusionQuote })
-        setHash(hash)
-        setSuccess(true)
-      } catch (err) {
-        const error =
-          err instanceof Error ? err : new Error("Failed to execute swap")
-        console.error("Swap error details:", err)
-        setError(error)
-      } finally {
-        setIsLoading(false)
-      }
-    },
-    [meeClient]
-  )
 
   return {
     swap,
