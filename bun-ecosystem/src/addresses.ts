@@ -1,0 +1,1 @@
+export const COUNTER_ADDRESS = "0x0000000000000000000000000000000000000001" // This is a placeholder, we should use the actual address from the ecosystem package 

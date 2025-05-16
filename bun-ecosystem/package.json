@@ -1,0 +1,24 @@
+{
+  "name": "bun-ecosystem",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^20.0.0",
+    "viem": "^2.0.0",
+    "viem-deal": "^2.0.4",
+    "vitest": "^3.1.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+		"@biconomy/abstractjs": "1.0.13",
+    "@biconomy/ecosystem": "^1.1.2",
+    "@rhinestone/module-sdk": "latest"
+  }
+}
